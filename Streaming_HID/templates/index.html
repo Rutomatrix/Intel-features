@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>RPi Stream + HID Control</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: black;
+      overflow: hidden;
+      height: 100%;
+      font-family: sans-serif;
+    }
+
+    #controls {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 10;
+    }
+
+    #controls button {
+      padding: 10px 20px;
+      margin-right: 10px;
+      font-size: 16px;
+      background-color: #28a745;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    #controls button#stop {
+      background-color: #dc3545;
+    }
+
+    img {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      object-fit: contain;
+      z-index: 1;
+    }
+  </style>
+</head>
+<body>
+  <div id="controls">
+    <button onclick="startStreaming()">Start Streaming</button>
+    <button id="stop" onclick="stopStreaming()">Stop Streaming</button>
+    <label for="shortcutSelect">Keyboard Shortcuts:</label>
+<select id="shortcutSelect" onchange="sendShortcut(this.value)">
+<option value="">-- Select a Shortcut --</option>
+<option value="esc">Esc</option>
+<option value="ctrl_alt_del">Ctrl + Alt + Del</option>
+<option value="ctrl_shift_esc">Ctrl + Shift + Esc</option>
+<option value="alt_f4">Alt + F4</option>
+<option value="win_l">Win + L</option>
+<option value="win_d">Win + D</option>
+<option value="win_tab">Win + Tab</option>
+<option value="alt_tab">Alt + Tab</option>
+<option value="alt_esc">Alt + Esc</option>
+<option value="win_ctrl_d">Win + Ctrl + D</option>
+<option value="win_ctrl_left">Win + Ctrl + Left</option>
+<option value="win_ctrl_right">Win + Ctrl + Right</option>
+<option value="win_up">Win + Up</option>
+<option value="win_down">Win + Down</option>
+<option value="win_left">Win + Left</option>
+<option value="win_right">Win + Right</option>
+<option value="fn_f1_f12">Fn + F1–F12</option>
+<option value="ctrl_alt_right">Ctrl + Alt + →</option>
+<option value="ctrl_alt_left">Ctrl + Alt + ←</option>
+<option value="ctrl_n">Ctrl + N</option>
+<option value="ctrl_w">Ctrl + W</option>
+<option value="ctrl_t">Ctrl + T</option>
+<option value="ctrl_shift_t">Ctrl + Shift + T</option>
+</select>
+
+<label for="shortcutSelect">Function Keys:</label>
+<select id="shortcutSelect" onchange="sendShortcut(this.value)">
+<option value="">-- Select a Shortcut --</option>
+<option value="f1">F1</option>
+<option value="f2">F2</option>
+<option value="f3">F3</option>
+<option value="f4">F4</option>
+<option value="f5">F5</option>
+<option value="f6">F6</option>
+<option value="f7">F7</option>
+<option value="f8">F8</option>
+<option value="f9">F9</option>
+<option value="f10">F10</option>
+<option value="f11">F11</option>
+<option value="f12">F12</option>
+</select>
+  </div>
+
+  <img id="stream" src="http://{{ stream_host }}:9000/stream?advance_headers=1&dual_final_frames=1" alt="Live Stream">
+
+  <script>
+    const video = document.getElementById("stream");
+    const BASE_IP = "172.16.38.22";
+    function startStreaming() {
+    fetch(`http://${BASE_IP}:5000/start_stream`)
+      .then(response => {
+        if (!response.ok) throw new Error("Start failed");
+        console.log("Streaming started successfully");
+        location.reload();
+      })
+      .catch(error => {
+        console.error("Error starting stream:", error);
+        alert("Failed to start stream.");
+      });
+  }
+
+function sendShortcut(action) {
+    if (!action) return; // ignore if nothing selected
+    fetch(`/shortcut/${action}`, { method: "POST" })
+        .then(res => res.text())
+        .then(data => console.log(data))
+        .catch(err => console.error(err));
+}
+
+
+        function stopStreaming() {
+      fetch(`http://${BASE_IP}:8000/stop_stream`, {
+    method: "POST"
+  })
+      .then(response => {
+        if (!response.ok) throw new Error("Stop failed");
+        console.log("Streaming stopped successfully");
+      })
+      .catch(error => {
+        console.error("Error stopping stream:", error);
+        alert("Failed to stop stream.");
+      });
+  }
+
+   video.addEventListener("click", () => {
+      video.requestPointerLock = video.requestPointerLock || video.mozRequestPointerLock || video.webkitRequestPointerLock;
+      video.requestPointerLock();
+    });
+
+
+    document.addEventListener("keydown", function (e) {
+      if (document.pointerLockElement === video) {
+        const jsCodes = [];
+        if (e.ctrlKey) jsCodes.push(17);
+        if (e.shiftKey) jsCodes.push(16);
+        if (e.altKey) jsCodes.push(18);
+                if (e.metaKey || e.key === "Meta") jsCodes.push(91);
+        const isModifier = [16, 17, 18, 91].includes(e.keyCode);
+        if (!isModifier) jsCodes.push(e.keyCode);
+
+        fetch(`http://${BASE_IP}:5000/keyboard`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ keycodes: jsCodes })
+        });
+
+        e.preventDefault();
+      }
+    });
+
+    function smoothMouseDelta(dx, dy, threshold = 1) {
+      dx = Math.abs(dx) >= threshold ? dx : 0;
+      dy = Math.abs(dy) >= threshold ? dy : 0;
+      return [dx, dy];
+    }
+
+    document.addEventListener("mousemove", (e) => {
+      if (document.pointerLockElement === video) {
+        let [dx, dy] = smoothMouseDelta(e.movementX, e.movementY);
+        fetch(`http://${BASE_IP}:5000/mouse`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ x: dx, y: dy, buttons: e.buttons, wheel: 0 })
+        });
+      }
+    });
+
+    document.addEventListener("mousedown", (e) => {
+      if (document.pointerLockElement === video) {
+        fetch(`http://${BASE_IP}:5000/mouse`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ x: 0, y: 0, buttons: (1 << e.button), wheel: 0 })
+        });
+      }
+    });
+        document.addEventListener("mouseup", (e) => {
+      if (document.pointerLockElement === video) {
+        fetch(`http://${BASE_IP}:5000/mouse`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ x: 0, y: 0, buttons: 0, wheel: 0 })
+        });
+      }
+    });
+
+    document.addEventListener("wheel", (e) => {
+      if (document.pointerLockElement === video) {
+        fetch(`http://${BASE_IP}:5000/mouse`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ x: 0, y: 0, buttons: 0, wheel: e.deltaY > 0 ? 0xFF : 0x01 })
+        });
+      }
+    });
+  </script>
+</body>
+</html>
+        
