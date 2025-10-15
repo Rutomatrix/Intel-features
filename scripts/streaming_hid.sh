@@ -62,51 +62,6 @@ cp -r "${TMP_CLONE}/Streaming_HID" "${STREAM_DIR}"
 chown -R "${TARGET_USER}:${TARGET_USER}" "${STREAM_DIR}"
 
 
-# --- 4.1) Build & install ustreamer inside Streaming_HID ---
-install_ustreamer_in_tree() {
-  echo "--- Installing build deps for ustreamer ---"
-  apt-get install -y \
-    build-essential \
-    libevent-dev \
-    libjpeg-dev \
-    libbsd-dev \
-    libv4l-dev \
-    git \
-    pkg-config
-
-  USTREAMER_SRC="${STREAM_DIR}/ustreamer"
-
-  # If repo bundled a folder, use it; else clone; if it's a git repo, update.
-  if [[ -d "${USTREAMER_SRC}/.git" ]]; then
-    echo "--- Updating existing ustreamer git repo ---"
-    git -C "${USTREAMER_SRC}" fetch --depth 1 origin
-    git -C "${USTREAMER_SRC}" reset --hard origin/master
-  elif [[ -d "${USTREAMER_SRC}" ]]; then
-    echo "--- Found non-git ustreamer folder; using it as-is ---"
-  else
-    echo "--- Cloning ustreamer into ${USTREAMER_SRC} ---"
-    git clone --depth 1 https://github.com/pikvm/ustreamer.git "${USTREAMER_SRC}"
-    chown -R "${TARGET_USER}:${TARGET_USER}" "${USTREAMER_SRC}"
-  fi
-
-  echo "--- Building ustreamer ---"
-  make -C "${USTREAMER_SRC}" -j"$(nproc)"
-
-  echo "--- Installing ustreamer to system (/usr/local/bin) ---"
-  make -C "${USTREAMER_SRC}" install
-  ldconfig || true
-
-  if ! command -v ustreamer >/dev/null 2>&1; then
-    echo "ERROR: ustreamer not found after install."
-    exit 12
-  fi
-  echo "✅ ustreamer installed."
-}
-
-install_ustreamer_in_tree
-
-
-
 # --- 4) Setup Python virtual environment ---
 if [[ ! -d "${VENV_DIR}" ]]; then
   echo "Creating venv..."
@@ -121,6 +76,54 @@ else
   echo "No requirements.txt found. Installing FastAPI & Uvicorn..."
   "${VENV_DIR}/bin/pip" install fastapi uvicorn
 fi
+
+# --- 4.1) Build & install ustreamer inside Streaming_HID ---
+install_ustreamer_in_tree() {
+  echo "--- Installing build deps for ustreamer ---"
+  apt-get install -y \
+    build-essential \
+    libevent-dev \
+    libjpeg-dev \
+    libbsd-dev \
+    libv4l-dev \
+    git \
+    pkg-config
+
+  USTREAMER_SRC="${STREAM_DIR}/ustreamer"
+
+  # Always remove any pre-copied (empty/stale) ustreamer dir from repo
+  if [[ -d "${USTREAMER_SRC}" ]]; then
+    echo "--- Removing bundled ${USTREAMER_SRC} ---"
+    rm -rf "${USTREAMER_SRC}"
+  fi
+
+  echo "--- Cloning ustreamer into ${USTREAMER_SRC} ---"
+  git clone --depth 1 https://github.com/pikvm/ustreamer.git "${USTREAMER_SRC}"
+  chown -R "${TARGET_USER}:${TARGET_USER}" "${USTREAMER_SRC}"
+
+  echo "--- Verifying Makefile ---"
+  if [[ ! -f "${USTREAMER_SRC}/Makefile" ]]; then
+    echo "ERROR: Makefile not found in ${USTREAMER_SRC}"
+    ls -la "${USTREAMER_SRC}"
+    exit 12
+  fi
+
+  echo "--- Building ustreamer ---"
+  make -C "${USTREAMER_SRC}" -j"$(nproc)"
+
+  echo "--- Installing ustreamer to /usr/local/bin ---"
+  make -C "${USTREAMER_SRC}" install
+  ldconfig || true
+
+  if ! command -v ustreamer >/dev/null 2>&1; then
+    echo "ERROR: ustreamer not found after install."
+    exit 13
+  fi
+  echo "✅ ustreamer installed."
+}
+
+install_ustreamer_in_tree
+
 
 
 
