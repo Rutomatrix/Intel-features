@@ -61,6 +61,8 @@ rm -rf "${STREAM_DIR}"
 cp -r "${TMP_CLONE}/Streaming_HID" "${STREAM_DIR}"
 chown -R "${TARGET_USER}:${TARGET_USER}" "${STREAM_DIR}"
 
+# 👉 Make gadgets/setup_composite_gadget.sh executable (the one-line change)
+chmod +x "${STREAM_DIR}/gadgets/setup_composite_gadget.sh" || true
 
 # --- 4) Setup Python virtual environment ---
 if [[ ! -d "${VENV_DIR}" ]]; then
@@ -155,4 +157,6 @@ echo
 echo "✅ Streaming_HID installed successfully!"
 echo "Check status with:   sudo systemctl status start_streaming.service"
 echo "To view logs:        sudo journalctl -u start_streaming.service -f"
+echo "Check status with:   sudo systemctl status streaming_hid.service"
+echo "To view logs:        sudo journalctl -u streaming_hid.service -f"
 echo "All services:        sudo systemctl list-units | grep streaming"

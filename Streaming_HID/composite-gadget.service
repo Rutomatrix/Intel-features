@@ -5,7 +5,7 @@ After=network.target
 [Service]
 Type=oneshot
 User=root
-ExecStart=/home/rpi/gadgets/setup_composite_gadget.sh
+ExecStart=/home/rpi/Streaming_HID/gadgets/setup_composite_gadget.sh
 RemainAfterExit=true
 
 [Install]
