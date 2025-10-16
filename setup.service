@@ -1,0 +1,19 @@
+[Unit]
+Description=Scripts API (FastAPI + Uvicorn)
+After=network.target
+Wants=network-online.target
+
+[Service]
+User=rpi
+Group=rpi
+WorkingDirectory=/home/rpi        
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/home/rpi/venv/bin/python -m uvicorn setup:app --host 0.0.0.0 --port 9010  # 🔧 venv+module path
+Restart=always
+RestartSec=3
+# Helpful logging
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
