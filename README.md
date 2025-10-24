@@ -145,3 +145,138 @@ When invoked via the `/stream` endpoints, the API relays the process output **ex
 ---
 
 **Done!** You can now manage your scripts via the REST API and watch their output live.
+
+# Raspberry Pi Feature Setup Guide
+
+This guide details the steps required to set up **USB File Sharing** and install **System Drivers** (excluding the USB File Sharing component) on a Raspberry Pi.
+
+---
+
+## 1. USB File Sharing Setup
+
+This setup uses a Python application with **Flask** to enable file sharing when a USB drive is inserted.
+
+### Pre-requirements
+
+Before running the application, ensure the following tools and libraries are installed and configured:
+
+### Pre-requirements: Install Git
+
+First, ensure **Git** is installed on the destination device:
+
+1.  Verify if Git is installed:
+    ```bash
+    git --version
+    ```
+2.  If Git is not installed, follow these steps:
+    * Update the package index:
+        ```bash
+        sudo apt update
+        ```
+    * Install Git:
+        ```bash
+        sudo apt install git -y
+        ```
+    * Verify installation again:
+        ```bash
+        git --version
+        ```
+
+### Running the File Sharing Application
+
+1.  Place the `usb_file_sharing.py` file in the destination directory where you intend to insert the USB drive. Use below command in the command promt (Destination device's cmd). Open the directory where you want to store the file in the cmd.
+      ```bash
+      cd <directory name>
+
+      curl -o usb_file_sharing.py https://raw.githubusercontent.com/Rutomatrix/Intel-features/main/usb_file_sharing.py
+      ```
+
+
+2.  **Python:**
+    * Verify installation:
+        ```bash
+        python --version
+        pip --version
+        ```
+        If not installed, then install python first and verify it.
+
+3.  **File Format:**
+    * The Python file **must** have a `.py` extension, not `.py.txt`.
+    * If your file is named `usb_file_sharing.py.txt`, rename it using the command below (replace `usb_file_sharing.py.txt` and `usb_file_sharing.py` with your actual file names):
+        ```bash
+        cd <dir_name>
+        mv usb_file_sharing.py.txt usb_file_sharing.py
+        ```
+
+4.  **Python Libraries:**
+    * Install the required libraries: **Flask**, **Flask-Cors**, and **Waitress**.
+        ```bash
+        pip install Flask Flask-Cors waitress
+        ```
+    * Verify installation:
+        ```bash
+        pip show Flask Flask-Cors waitress
+        ```
+
+5.  Run the Python file:
+    ```bash
+    python usb_file_sharing.py
+    ```
+---
+
+## 2. System Drivers Installation (Excluding USB File Sharing)
+
+This section covers cloning a repository and installing service files for additional drivers/features.
+
+### Pre-requirements: Install Git
+
+First, ensure **Git** is installed on the Raspberry Pi:
+
+1.  Verify if Git is installed:
+    ```bash
+    git --version
+    ```
+2.  If Git is not installed, follow these steps:
+    * Update the package index:
+        ```bash
+        sudo apt update
+        ```
+    * Install Git:
+        ```bash
+        sudo apt install git -y
+        ```
+    * Verify installation again:
+        ```bash
+        git --version
+        ```
+
+### Clone and Install Drivers
+
+1.  **Navigate** to the home directory for the `rpi` user:
+    ```bash
+    cd /home/rpi
+    ```
+2.  **Clone** the feature repository. This will create a local folder (e.g., `Intel-features`):
+    ```bash
+    git clone https://github.com/Rutomatrix/Intel-features.git
+    ```
+3.  **Copy** the necessary service files to the system's `systemd` directory:
+    ```bash
+    sudo cp -r intel-features/service-files/* /etc/systemd/system/
+    ```
+
+4.  **Reboot** the Raspberry Pi to apply the service changes:
+    ```bash
+    sudo reboot
+    ```
+
+Once the RPI has rebooted, all the installed features and drivers should be accessible.
+
+---
+
+## 3. Future Development (Yet to Do)
+
+The following items are planned for future development:
+
+1.  **Static IP Management:** Implement a global variable to store the **static IP address** and utilize it across all drivers where required.
+2.  **Static IP Driver:** Develop a dedicated driver to display and manage the configured static IP address.
