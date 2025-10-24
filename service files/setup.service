@@ -1,0 +1,14 @@
+[Unit]
+Description=Scripts API (FastAPI + Uvicorn)
+After=network.target
+
+[Service]
+User=root
+WorkingDirectory=/home/rpi        
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/home/rpi/venv/bin/python -m uvicorn setup:app --host 0.0.0.0 --port 9010  # 🔧 venv+module path
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

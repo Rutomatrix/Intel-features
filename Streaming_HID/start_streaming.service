@@ -1,0 +1,13 @@
+[Unit]
+Description=FastAPI controller for starting/stopping streaming_hid
+After=network.target
+
+[Service]
+ExecStart=/home/rpi/Streaming_HID/venv/bin/python /home/rpi/Streaming_HID/start_streaming.py
+WorkingDirectory=/home/rpi/Streaming_HID
+Restart=always
+User=root
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target

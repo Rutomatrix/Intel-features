@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>RPi USB Gadget ISO Flasher</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 30px;
+    }
+    button {
+      margin: 5px;
+      padding: 10px 20px;
+      font-size: 16px;
+    }
+    ul {
+      list-style: none;
+      padding: 0;
+    }
+    li {
+      cursor: pointer;
+      padding: 6px 10px;
+      border: 1px solid #ccc;
+      margin-top: 4px;
+    }
+    li.selected {
+      background-color: #cce5ff;
+      border-color: #007bff;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>RPi USB Gadget ISO Flasher</h1>
+
+  <button onclick="fetchList()">List OS</button>
+  <button onclick="mountSelected()" id="mountBtn" disabled>Mount</button>
+  <button onclick="unmount()" id="unmountBtn">Unmount</button>
+
+  <h2>Available ISO files:</h2>
+  <ul id="isoList"></ul>
+
+  <p id="status"></p>
+  <script>
+    let selectedFile = null;
+
+    function fetchList() {
+      fetch("/list")
+        .then(res => res.json())
+        .then(data => {
+          const ul = document.getElementById("isoList");
+          ul.innerHTML = "";
+          selectedFile = null;
+          document.getElementById("mountBtn").disabled = true;
+
+          data.available_isos.forEach(file => {
+            const li = document.createElement("li");
+            li.textContent = file;
+            li.onclick = () => {
+              // Deselect all
+              [...ul.children].forEach(child => child.classList.remove("selected"));
+              // Select current
+              li.classList.add("selected");
+              selectedFile = file;
+              document.getElementById("mountBtn").disabled = false;
+            };
+            ul.appendChild(li);
+          });
+        })
+        .catch(err => {
+          document.getElementById("status").textContent = "Failed to fetch list.";
+          console.error(err);
+        });
+    }
+
+    function mountSelected() {
+      if (!selectedFile) return;
+      fetch(`/mount?filename=${encodeURIComponent(selectedFile)}`, {
+        method: "POST"
+      })
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById("status").textContent = `Mounted: ${data.iso}`;
+      })
+      .catch(err => {
+        document.getElementById("status").textContent = "Mount failed.";
+                console.error(err);
+                });
+    }
+
+    function unmount() {
+      fetch("/stop", {
+        method: "POST"
+      })
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById("status").textContent = "Unmounted.";
+      })
+      .catch(err => {
+        document.getElementById("status").textContent = "Unmount failed.";
+        console.error(err);
+      });
+    }
+  </script>
+</body>
+</html>

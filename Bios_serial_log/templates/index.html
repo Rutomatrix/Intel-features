@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BIOS Log Monitor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #151618;
+            min-height: 100vh;
+            padding: 40px 20px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+        
+        .container {
+            max-width: 1400px;
+            width: 100%;
+            background: #1e2022;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: #0971b3;
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        
+        .tabs {
+            display: flex;
+            background: #252729;
+            border-bottom: 2px solid #333;
+        }
+        
+        .tab {
+            flex: 1;
+            padding: 18px;
+            text-align: center;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background 0.2s;
+            border: none;
+            background: transparent;
+            font-size: 16px;
+            color: #aaa;
+        }
+        
+        .tab:hover {
+            background: #2a2c2e;
+        }
+        
+        .tab.active {
+            background: #1e2022;
+            color: #ff6a00;
+            border-bottom: 3px solid #ff6a00;
+        }
+        
+        .tab-content {
+            display: none;
+            padding: 30px;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .controls {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        
+        .btn:hover {
+            opacity: 0.9;
+        }
+        
+        .btn-connect {
+            background: #0971b3;
+            color: white;
+        }
+        
+        .btn-disconnect {
+            background: #e74c3c;
+            color: white;
+        }
+        
+        .btn-clear {
+            background: #555;
+            color: white;
+        }
+        
+        .status {
+            display: inline-flex;
+            align-items: center;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-weight: 500;
+            font-size: 14px;
+        }
+        
+        .status.connected {
+            background: #27ae60;
+            color: white;
+        }
+        
+        .status.disconnected {
+            background: #555;
+            color: white;
+        }
+        
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+            background: currentColor;
+        }
+        
+        .log-container {
+            background: #0d0e0f;
+            color: #d4d4d4;
+            padding: 20px;
+            border-radius: 4px;
+            height: 600px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            border: 1px solid #333;
+        }
+        
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 5px;
+        }
+        
+        .log-entry:hover {
+            background: #1a1b1c;
+        }
+        
+        .log-timestamp {
+            color: #888;
+            margin-right: 10px;
+        }
+        
+        .files-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        
+        .file-card {
+            background: #252729;
+            padding: 25px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s;
+            border: 2px solid transparent;
+        }
+        
+        .file-card:hover {
+            background: #2a2c2e;
+            border-color: #ff6a00;
+        }
+        
+        .file-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+            color: #ff6a00;
+        }
+        
+        .file-name {
+            font-weight: 600;
+            font-size: 16px;
+            word-break: break-all;
+            margin-bottom: 10px;
+            color: #fff;
+        }
+        
+        .file-meta {
+            font-size: 12px;
+            color: #aaa;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.85);
+            z-index: 1000;
+        }
+        
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background: #1e2022;
+            width: 90%;
+            max-width: 1000px;
+            max-height: 90vh;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .modal-header {
+            background: #0971b3;
+            color: white;
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-header h2 {
+            font-size: 1.5em;
+            font-weight: 600;
+        }
+        
+        .close-btn {
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 28px;
+            cursor: pointer;
+            padding: 0;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+        
+        .close-btn:hover {
+            background: rgba(255,255,255,0.1);
+        }
+        
+        .modal-body {
+            padding: 30px;
+            max-height: calc(90vh - 100px);
+            overflow-y: auto;
+        }
+        
+        .file-content {
+            background: #0d0e0f;
+            color: #d4d4d4;
+            padding: 20px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            border: 1px solid #333;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #ff6a00;
+            font-size: 18px;
+        }
+        
+        .spinner {
+            border: 4px solid #333;
+            border-top: 4px solid #ff6a00;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>ðŸ–¥ï¸ BIOS Log Monitor</h1>
+            <p>Real-time BIOS logging and file management</p>
+        </div>
+        
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('live')">ðŸ“¡ Live Logs</button>
+            <button class="tab" onclick="switchTab('files')">ðŸ“ Log Files</button>
+        </div>
+        
+        <div id="live-tab" class="tab-content active">
+            <div class="controls">
+                <button id="connectBtn" class="btn btn-connect" onclick="connect()">Connect</button>
+                <button id="disconnectBtn" class="btn btn-disconnect" onclick="disconnect()" style="display:none;">Disconnect</button>
+                <button class="btn btn-clear" onclick="clearLogs()">Clear Logs</button>
+                <span id="status" class="status disconnected">
+                    <span class="status-dot"></span>
+                    Disconnected
+                </span>
+            </div>
+            
+            <div id="logContainer" class="log-container">
+                <div class="empty-state">
+                    <div class="empty-state-icon">ðŸ“‹</div>
+                    <p>Click "Connect" to start monitoring BIOS logs...</p>
+                </div>
+            </div>
+        </div>
+        
+        <div id="files-tab" class="tab-content">
+            <div id="filesGrid" class="files-grid">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    Loading log files...
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">File Content</h2>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="modalContent" class="file-content"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let isConnected = false;
+        let logInterval = null;
+        let heartbeatInterval = null;
+        
+        // Send heartbeat to server
+        function sendHeartbeat() {
+            if (isConnected) {
+                fetch('/heartbeat', { method: 'POST' })
+                    .catch(err => console.error('Heartbeat failed:', err));
+            }
+        }
+        
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', function(e) {
+            if (isConnected) {
+                // Use sendBeacon for reliable cleanup on page unload
+                navigator.sendBeacon('/cleanup');
+            }
+        });
+        
+        // Also cleanup on visibility change (tab close/switch)
+        document.addEventListener('visibilitychange', function() {
+            if (document.visibilityState === 'hidden' && isConnected) {
+                navigator.sendBeacon('/cleanup');
+            }
+        });
+        
+        function switchTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            if (tab === 'live') {
+                document.querySelectorAll('.tab')[0].classList.add('active');
+                document.getElementById('live-tab').classList.add('active');
+            } else {
+                document.querySelectorAll('.tab')[1].classList.add('active');
+                document.getElementById('files-tab').classList.add('active');
+                loadFiles();
+            }
+        }
+        
+        async function connect() {
+            if (isConnected) return;
+            
+            try {
+                const response = await fetch('/start-logging', { method: 'POST' });
+                const data = await response.json();
+                
+                if (response.status === 409) {
+                    // Another tab has control
+                    alert('Logging is already active in another tab.\n\n' + data.message);
+                    return;
+                }
+                
+                if (data.status === 'started') {
+                    isConnected = true;
+                    document.getElementById('connectBtn').style.display = 'none';
+                    document.getElementById('disconnectBtn').style.display = 'inline-block';
+                    document.getElementById('status').className = 'status connected';
+                    document.getElementById('status').innerHTML = '<span class="status-dot"></span>Connected';
+                    
+                    const logContainer = document.getElementById('logContainer');
+                    logContainer.innerHTML = '';
+                    
+                    // Start polling for logs
+                    logInterval = setInterval(fetchLogs, 500);
+                } else {
+                    alert('Failed to start logging: ' + data.message);
+                }
+            } catch (error) {
+                alert('Error connecting: ' + error.message);
+            }
+        }
+        
+        async function disconnect() {
+            if (!isConnected) return;
+            
+            try {
+                const response = await fetch('/stop-logging', { method: 'POST' });
+                const data = await response.json();
+                
+                if (response.status === 403) {
+                    alert('Error: ' + data.message);
+                    return;
+                }
+                
+                isConnected = false;
+                clearInterval(logInterval);
+                document.getElementById('connectBtn').style.display = 'inline-block';
+                document.getElementById('disconnectBtn').style.display = 'none';
+                document.getElementById('status').className = 'status disconnected';
+                document.getElementById('status').innerHTML = '<span class="status-dot"></span>Disconnected';
+            } catch (error) {
+                alert('Error disconnecting: ' + error.message);
+            }
+        }
+        
+        async function fetchLogs() {
+            try {
+                const response = await fetch('/get-logs');
+                const data = await response.json();
+                
+                if (data.logs && data.logs.length > 0) {
+                    const logContainer = document.getElementById('logContainer');
+                    data.logs.forEach(log => {
+                        const entry = document.createElement('div');
+                        entry.className = 'log-entry';
+                        const timestamp = new Date().toLocaleTimeString();
+                        entry.innerHTML = `<span class="log-timestamp">[${timestamp}]</span>${escapeHtml(log)}`;
+                        logContainer.appendChild(entry);
+                    });
+                    logContainer.scrollTop = logContainer.scrollHeight;
+                }
+            } catch (error) {
+                console.error('Error fetching logs:', error);
+            }
+        }
+        
+        function clearLogs() {
+            document.getElementById('logContainer').innerHTML = '';
+        }
+        
+        async function loadFiles() {
+            const filesGrid = document.getElementById('filesGrid');
+            filesGrid.innerHTML = '<div class="loading"><div class="spinner"></div>Loading log files...</div>';
+            
+            try {
+                const response = await fetch('/list-files');
+                const data = await response.json();
+                
+                if (data.files && data.files.length > 0) {
+                    filesGrid.innerHTML = '';
+                    data.files.forEach(file => {
+                        const card = document.createElement('div');
+                        card.className = 'file-card';
+                        card.onclick = () => openFile(file.name);
+                        card.innerHTML = `
+                            <div class="file-icon">ðŸ“„</div>
+                            <div class="file-name">${file.name}</div>
+                            <div class="file-meta">
+                                Size: ${formatBytes(file.size)}<br>
+                                Modified: ${new Date(file.modified * 1000).toLocaleString()}
+                            </div>
+                        `;
+                        filesGrid.appendChild(card);
+                    });
+                } else {
+                    filesGrid.innerHTML = '<div class="empty-state"><div class="empty-state-icon">ðŸ“‚</div><p>No log files found</p></div>';
+                }
+            } catch (error) {
+                filesGrid.innerHTML = '<div class="empty-state"><div class="empty-state-icon">âš ï¸</div><p>Error loading files: ' + error.message + '</p></div>';
+            }
+        }
+        
+        async function openFile(filename) {
+            const modal = document.getElementById('modal');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalContent = document.getElementById('modalContent');
+            
+            modalTitle.textContent = filename;
+            modalContent.innerHTML = '<div class="loading"><div class="spinner"></div>Loading file...</div>';
+            modal.classList.add('active');
+            
+            try {
+                const response = await fetch(`/get-file/${encodeURIComponent(filename)}`);
+                const data = await response.json();
+                
+                if (data.content) {
+                    modalContent.textContent = data.content;
+                } else {
+                    modalContent.textContent = 'Error loading file: ' + data.error;
+                }
+            } catch (error) {
+                modalContent.textContent = 'Error loading file: ' + error.message;
+            }
+        }
+        
+        function closeModal() {
+            document.getElementById('modal').classList.remove('active');
+        }
+        
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // Close modal on background click
+        document.getElementById('modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+</html>

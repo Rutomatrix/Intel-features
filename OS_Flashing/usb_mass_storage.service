@@ -1,0 +1,14 @@
+[Unit]
+Description=RPi USB Mass Storage API Service
+After=network.target
+
+[Service]
+User=root
+WorkingDirectory=/home/rpi/OS_Flashing
+ExecStart=/home/rpi/OS_Flashing/venv/bin/python /home/rpi/OS_Flashing/app.py
+Restart=always
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target

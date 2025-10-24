@@ -1,0 +1,14 @@
+[Unit]
+Description=Streaming HID Service
+After=network.target
+
+[Service]
+ExecStart=/home/rpi/Streaming_HID/venv/bin/python /home/rpi/Streaming_HID/app.py
+WorkingDirectory=/home/rpi/Streaming_HID
+StandardOutput=inherit
+StandardError=inherit
+Restart=always
+User=root
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,17 @@
+[Unit]
+Description=Run app1.py at boot
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /home/rpi/Firmware/app1.py
+WorkingDirectory=/home/rpi/Firmware
+User=rpi
+Group=rpi
+Restart=always
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target
+
