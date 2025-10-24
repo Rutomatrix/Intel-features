@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Power Control Panel</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #ff6a00;
+            --secondary: #0971b3;
+            --danger: #e74c3c;
+            --dark-bg: #000000;
+            --panel-bg: #1a1a1a;
+            --text-light: #ffffff;
+            --text-muted: #7f8c8d;
+        }
+        
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            color: var(--text-light);
+            line-height: 1.6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        
+        .control-panel {
+            background: var(--panel-bg);
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            border: 1px solid #333333;
+            width: 100%;
+            max-width: 650px;
+            max-height: 95vh;
+            overflow: auto;
+        }
+        
+        .status {
+            padding: 18px;
+            margin: 20px 0;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            background-color: #222222;
+            border-left: 5px solid #333333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .status-active {
+            background: rgba(39, 174, 96, 0.1);
+            border-left: 5px solid #27ae60;
+            color: #aaffaa;
+        }
+        
+        .status-off {
+            background: rgba(231, 76, 60, 0.1);
+            border-left: 5px solid var(--danger);
+            color: #ffaaaa;
+        }
+        
+        .status-unknown {
+            background: rgba(243, 156, 18, 0.1);
+            border-left: 5px solid #f39c12;
+            color: #ffffaa;
+        }
+        
+        .btn {
+            padding: 14px 24px;
+            margin: 5px;
+            border: none;
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+            font-size: 16px;
+            min-width: 120px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+        
+        .btn:disabled::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 4px;
+            background: var(--secondary);
+            animation: cooldown 20s linear forwards;
+        }
+        
+        #btnOn { 
+            background: var(--primary);
+            box-shadow: 0 4px 14px rgba(255, 106, 0, 0.35);
+        }
+        
+        #btnOff { 
+            background: var(--danger);
+            box-shadow: 0 4px 14px rgba(231, 76, 60, 0.35);
+        }
+        
+        #btnReset { 
+            background: var(--secondary);
+            box-shadow: 0 4px 14px rgba(9, 113, 179, 0.35);
+        }
+        
+        .btn-container {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 25px;
+        }
+        
+        .cooldown-timer {
+            margin-top: 15px;
+            font-size: 14px;
+            color: var(--text-muted);
+            display: none;
+            text-align: center;
+        }
+        
+        .last-updated {
+            margin-top: 15px;
+            font-size: 13px;
+            color: var(--text-muted);
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        
+        h2 {
+            color: white;
+            text-align: center;
+            margin-bottom: 25px;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+        
+        @keyframes cooldown {
+            from { width: 100%; }
+            to { width: 0%; }
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 0.6; }
+            50% { opacity: 1; }
+            100% { opacity: 0.6; }
+        }
+    </style>
+</head>
+<body>
+    <div class="control-panel">
+        <h2>
+            <i class="fas fa-power-off"></i>
+            System Power Control
+        </h2>
+        
+        <div id="statusDisplay" class="status status-unknown">
+            <i class="fas fa-question-circle"></i>
+            System status will appear here
+        </div>
+        
+        <div id="lastUpdated" class="last-updated">
+            <i class="far fa-clock"></i>
+            Last updated: --
+        </div>
+        
+        <div class="btn-container">
+            <button id="btnOn" class="btn">
+                <i class="fas fa-power-off"></i>
+                Power ON
+            </button>
+            <button id="btnOff" class="btn">
+                <i class="fas fa-plug"></i>
+                Power OFF
+            </button>
+            <button id="btnReset" class="btn">
+                <i class="fas fa-redo"></i>
+                Reset
+            </button>
+        </div>
+        
+        <div id="cooldownTimer" class="cooldown-timer">
+            <i class="fas fa-hourglass-half pulse"></i>
+            Buttons will be available in <span id="countdown">20</span> seconds
+        </div>
+    </div>
+
+    <script>
+        const cooldownTimer = document.getElementById('cooldownTimer');
+        const countdownDisplay = document.getElementById('countdown');
+        const lastUpdatedDisplay = document.getElementById('lastUpdated');
+        const statusDisplay = document.getElementById('statusDisplay');
+        let currentStatus = 'unknown';
+        let cooldownActive = false;
+        let statusCheckInterval;
+        
+        // Status icons mapping
+        const statusIcons = {
+            active: '<i class="fas fa-check-circle"></i>',
+            off: '<i class="fas fa-power-off"></i>',
+            shutdown: '<i class="fas fa-plug"></i>',
+            'server off': '<i class="fas fa-server"></i>',
+            hybernate: '<i class="fas fa-moon"></i>',
+            unknown: '<i class="fas fa-question-circle"></i>',
+            error: '<i class="fas fa-exclamation-triangle"></i>'
+        };
+        
+        // Power control functions
+        async function powerOn() {
+            return sendPowerCommand('on');
+        }
+        
+        async function powerOff() {
+            return sendPowerCommand('off');
+        }
+        
+        async function powerReset() {
+            return sendPowerCommand('reset');
+        }
+        
+        function startCooldown() {
+            if (cooldownActive) return;
+            
+            cooldownActive = true;
+            const powerButtons = ['btnOn', 'btnOff', 'btnReset'];
+            
+            // Disable all power buttons
+            powerButtons.forEach(id => {
+                document.getElementById(id).disabled = true;
+            });
+            
+            // Show cooldown timer
+            cooldownTimer.style.display = 'block';
+            
+            // Start countdown (20 seconds)
+            let seconds = 20;
+            countdownDisplay.textContent = seconds;
+            
+            const countdownInterval = setInterval(() => {
+                seconds--;
+                countdownDisplay.textContent = seconds;
+                
+                if (seconds <= 0) {
+                    clearInterval(countdownInterval);
+                    endCooldown();
+                }
+            }, 1000);
+        }
+        
+        function endCooldown() {
+            const powerButtons = ['btnOn', 'btnOff', 'btnReset'];
+            
+            // Enable all power buttons
+            powerButtons.forEach(id => {
+                document.getElementById(id).disabled = false;
+            });
+            
+            // Hide cooldown timer
+            cooldownTimer.style.display = 'none';
+            cooldownActive = false;
+        }
+        
+        function updateLastUpdatedTime() {
+            const now = new Date();
+            lastUpdatedDisplay.innerHTML = `<i class="far fa-clock"></i> Last updated: ${now.toLocaleTimeString()}`;
+        }
+        
+        async function sendPowerCommand(action) {
+            const btn = document.getElementById(`btn${action.charAt(0).toUpperCase() + action.slice(1)}`);
+            btn.disabled = true;
+            
+            try {
+                const response = await fetch(`/power/${action}`);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                
+                const data = await response.json();
+                if (data.status !== 'success') throw new Error(data.message);
+                
+                // Show success feedback
+                statusDisplay.innerHTML = `${statusIcons['active']} Power ${action} command sent successfully`;
+                statusDisplay.className = 'status status-active';
+                updateLastUpdatedTime();
+                
+                // Start 20-second cooldown period
+                startCooldown();
+                
+                // Auto-refresh status after power command
+                setTimeout(checkStatus, 2000);
+            } catch (error) {
+                console.error('Power command failed:', error);
+                statusDisplay.innerHTML = `${statusIcons['error']} Failed: ${error.message}`;
+                statusDisplay.className = 'status status-unknown';
+                btn.disabled = false;
+            }
+        }
+        
+        // Status check function
+        async function checkStatus() {
+            try {
+                const response = await fetch('/state');
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                
+                const data = await response.json();
+                currentStatus = data.status || 'unknown';
+                
+                // Get the appropriate icon for the status
+                const statusIcon = statusIcons[currentStatus] || statusIcons['unknown'];
+                
+                // Update status display
+                statusDisplay.innerHTML = `${statusIcon} ${data.state}`;
+                
+                // Update status display style
+                statusDisplay.className = 'status';
+                if (currentStatus === 'active') {
+                    statusDisplay.classList.add('status-active');
+                } else if (currentStatus === 'off') {
+                    statusDisplay.classList.add('status-off');
+                } else {
+                    statusDisplay.classList.add('status-unknown');
+                }
+                
+                updateLastUpdatedTime();
+                
+            } catch (error) {
+                console.error('Status check failed:', error);
+                statusDisplay.innerHTML = `${statusIcons['error']} Error checking status`;
+                statusDisplay.className = 'status status-unknown';
+            }
+        }
+        
+        // Initialize
+        document.getElementById('btnOn').addEventListener('click', powerOn);
+        document.getElementById('btnOff').addEventListener('click', powerOff);
+        document.getElementById('btnReset').addEventListener('click', powerReset);
+        
+        // Check status on page load and set up auto-refresh
+        window.addEventListener('DOMContentLoaded', () => {
+            checkStatus();
+            // Set up 1-second interval for status checks
+            statusCheckInterval = setInterval(checkStatus, 1000);
+        });
+        
+        // Clean up interval when page is unloaded
+        window.addEventListener('beforeunload', () => {
+            if (statusCheckInterval) {
+                clearInterval(statusCheckInterval);
+            }
+        });
+    </script>
+</body>
+</html>

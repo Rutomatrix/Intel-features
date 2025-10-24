@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Firmware Flash Utility</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --bg-dark: #000000;
+      --primary: #ff6a00;
+      --secondary: #0971b3;
+      --text-light: #ffffff;
+      --text-muted: #aaaaaa;
+      --card-bg: #111111;
+      --success: #28a745;
+      --danger: #dc3545;
+      --warning: #ffc107;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      color: var(--text-light);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+      overflow:hidden;
+      background: #ffffff;
+    }
+    
+    .container {
+      max-width: 800px;
+      width: 100%;
+      padding: 30px;
+      background: #1e1e1e;
+      border-radius: 12px;
+      border: 1px solid #333333;
+      box-shadow: 0 4px 20px rgb(45 45 45 / 36%);
+    }
+    
+    h2 {
+      color: #eee;
+      text-align: center;
+      margin-bottom: 30px;
+      padding-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+    
+    .button-group {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 15px;
+      margin-bottom: 30px;
+    }
+    
+    button {
+      padding: 12px 25px;
+      font-size: 16px;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      min-width: 180px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+    
+    #detect {
+      background-color: var(--primary);
+      color: white;
+    }
+    
+    #read {
+      background-color: var(--secondary);
+      color: white;
+    }
+    
+    #write {
+      background-color: var(--secondary);
+      color: white;
+    }
+    
+    button:hover:enabled {
+      opacity: 0.9;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+    
+    button:active:enabled {
+      transform: translateY(0);
+    }
+    
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+    
+    pre {
+      background: #1a1a1a;
+      padding: 20px;
+      border-radius: 8px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      border-left: 4px solid var(--primary);
+      max-height: 300px;
+      overflow-y: auto;
+      font-family: 'Consolas', monospace;
+    }
+    
+    .file-list {
+      background: #1a1a1a;
+      padding: 15px;
+      border-radius: 8px;
+      margin: 15px 0;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    
+    .file-item {
+      padding: 10px;
+      margin: 5px 0;
+      background: #252525;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .file-item:hover {
+      background: #333;
+    }
+    
+    .file-item.selected {
+      background: var(--secondary);
+    }
+    
+    .file-icon {
+      color: var(--primary);
+    }
+    
+    .progress-container {
+      width: 100%;
+      background-color: #252525;
+      border-radius: 5px;
+      margin: 20px 0;
+      display: none;
+    }
+    
+    .progress-bar {
+      height: 20px;
+      border-radius: 5px;
+      background-color: var(--primary);
+      width: 0%;
+      transition: width 0.3s;
+      text-align: center;
+      line-height: 20px;
+      font-size: 12px;
+      color: white;
+    }
+    
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.8);
+      z-index: 100;
+      justify-content: center;
+      align-items: center;
+    }
+    
+    .modal-content {
+      background-color: var(--card-bg);
+      padding: 30px;
+      border-radius: 12px;
+      max-width: 500px;
+      width: 90%;
+      text-align: center;
+      box-shadow: 0 5px 30px rgba(0, 0, 0, 0.4);
+    }
+    
+    .modal h2 {
+      color: var(--primary);
+      margin-top: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+    
+    .modal-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      margin-top: 20px;
+      flex-direction: column;
+    }
+
+    #selectedFileName {
+      margin-bottom: 10px;
+      color: var(--text-muted);
+      font-style: italic;
+    }
+    
+    .modal-btn {
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .confirm-btn {
+      background-color: var(--primary);
+      color: white;
+      border: none;
+    }
+    
+    .confirm-btn.active {
+      background-color: #007bff !important;
+      color: #fff !important;
+    }
+    
+    .cancel-btn {
+      background-color: #333;
+      color: white;
+      border: none;
+    }
+    
+    .modal-btn:hover {
+      opacity: 0.9;
+      transform: translateY(-2px);
+    }
+    
+    @media (max-width: 600px) {
+      .container {
+        padding: 20px;
+      }
+      
+      button {
+        min-width: 100%;
+      }
+      
+      .modal-content {
+        padding: 20px;
+      }
+
+      .modal-buttons {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2><i class="fa-solid fa-bolt"></i>Firmware Flash Utility</h2>
+    
+    <div class="button-group">
+      <button id="detect">
+        <i class="fas fa-search"></i>
+        Detect Chip
+      </button>
+      <button id="read">
+        <i class="fas fa-download"></i>
+        Read Firmware
+      </button>
+      <button id="write">
+        <i class="fas fa-upload"></i>
+        Write Firmware
+      </button>
+    </div>
+    
+    <div class="progress-container" id="progressContainer">
+      <div class="progress-bar" id="progressBar">0%</div>
+    </div>
+    
+    <h3><i class="fas fa-terminal"></i> Output:</h3>
+    <pre id="result">Ready to perform operations...</pre>
+  </div>
+  
+  <div class="modal" id="fileModal">
+    <div class="modal-content">
+      <h2><i class="fas fa-file-alt"></i> Select Firmware File</h2>
+      <div class="file-list" id="fileList"></div>
+      <div id="selectedFileName"></div>
+      <div class="modal-buttons">
+        <button class="modal-btn confirm-btn" id="confirmWrite"> <i class="fas fa-check"></i> Confirm </button>
+        <button class="modal-btn cancel-btn" id="cancelWrite"> <i class="fas fa-times"></i> Cancel </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  let selectedFile = null;
+  let progressInterval;
+
+  function startProgress() {
+    const progressBar = document.getElementById("progressBar");
+    progressBar.style.width = "0%";
+    progressBar.textContent = "0%";
+    let progress = 0;
+    progressInterval = setInterval(() => {
+      progress = Math.min(progress + Math.random() * 8, 95);
+      progressBar.style.width = progress + "%";
+      progressBar.textContent = Math.round(progress) + "%";
+    }, 300);
+  }
+
+  function finishProgress() {
+    clearInterval(progressInterval);
+    const progressBar = document.getElementById("progressBar");
+    progressBar.style.width = "100%";
+    progressBar.textContent = "100%";
+    setTimeout(() => {
+      document.getElementById("progressContainer").style.display = "none";
+    }, 600);
+  }
+
+  function disableAllButtons() {
+    document.getElementById("detect").disabled = true;
+    document.getElementById("read").disabled = true;
+    document.getElementById("write").disabled = true;
+  }
+
+  function setButtonState(stage) {
+    disableAllButtons();
+    if (stage === "initial") {
+      document.getElementById("detect").disabled = false;
+    } else if (stage === "afterDetect") {
+      document.getElementById("detect").disabled = false;
+      document.getElementById("read").disabled = false;
+    } else if (stage === "afterRead") {
+      document.getElementById("detect").disabled = false;
+      document.getElementById("read").disabled = false;
+      document.getElementById("write").disabled = false;
+    }
+  }
+
+  async function call(endpoint, data, actionType, fileName = null) {
+    try {
+      document.getElementById("progressContainer").style.display = "block";
+      document.getElementById("result").textContent =
+        actionType === "read"
+          ? "Reading..."
+          : actionType === "write"
+          ? "Writing..."
+          : "Detecting...";
+
+      disableAllButtons();
+      startProgress();
+
+      const resp = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: data ? JSON.stringify(data) : undefined
+      });
+      const j = await resp.json();
+
+      finishProgress();
+
+      if (actionType === "read") {
+        if (j.file_created) {
+          document.getElementById("result").textContent =
+            `âœ… ${j.file_name} reading is completed (size: ${j.file_size} bytes)`;
+          setButtonState("afterRead");
+        } else {
+          document.getElementById("result").textContent = "âŒ Reading failed";
+          setButtonState("afterDetect");
+        }
+      } else if (actionType === "write") {
+        if (j.file_verified) {
+          document.getElementById("result").textContent =
+            `âœ… ${fileName} writing is completed`;
+        } else {
+          document.getElementById("result").textContent = "âŒ Writing failed";
+        }
+        setButtonState("afterRead");
+      } else if (actionType === "detect") {
+        if (j.detected_chips && j.detected_chips.length > 0) {
+          document.getElementById("result").textContent =
+            "Detected Chips:\n" + j.detected_chips.join("\n") +
+            `\n\nTotal chips detected: ${j.chip_count}`;
+          setButtonState("afterDetect");
+        } else {
+          document.getElementById("result").textContent = "No chips detected";
+          setButtonState("initial");
+        }
+      }
+    } catch (err) {
+      finishProgress();
+      document.getElementById("result").textContent = 'Error: ' + err.message;
+      setButtonState("initial");
+    }
+  }
+
+  document.getElementById("detect").onclick = () => call('/detect', null, "detect");
+  document.getElementById("read").onclick = () => call('/read', null, "read");
+  setButtonState("initial");
+
+  document.getElementById("write").onclick = async () => {
+    try {
+      document.getElementById("result").textContent = "Fetching available firmware files...";
+      const listResp = await fetch('/list-files', { method: 'POST' });
+      const listData = await listResp.json();
+      
+      if (!Array.isArray(listData.files) || listData.files.length === 0) {
+        document.getElementById("result").textContent = 'No firmware files found in /home/rpi/Documents';
+        return;
+      }
+      
+      const fileList = document.getElementById("fileList");
+      const selectedFileName = document.getElementById("selectedFileName");
+      selectedFileName.textContent = "";
+      selectedFile = null;
+      fileList.innerHTML = '';
+      
+      listData.files.forEach((file) => {
+        const fileName = file.split('/').pop();
+        const fileItem = document.createElement("div");
+        fileItem.className = "file-item";
+        fileItem.innerHTML = `<i class="fas fa-file-alt file-icon"></i><span>${fileName}</span>`;
+        fileItem.onclick = () => {
+          document.querySelectorAll('.file-item').forEach(item => item.classList.remove('selected'));
+          fileItem.classList.add('selected');
+          selectedFile = file;
+          selectedFileName.textContent = `Selected: ${fileName}`; // instant update
+          document.getElementById("confirmWrite").classList.add("active");
+        };
+        fileList.appendChild(fileItem);
+      });
+      
+      document.getElementById("fileModal").style.display = "flex";
+      
+    } catch (e) {
+      document.getElementById("result").textContent = 'Error: ' + e.message;
+    }
+  };
+  
+  document.getElementById("confirmWrite").onclick = async () => {
+    if (!selectedFile) {
+      alert('Please select a file first');
+      return;
+    }
+    document.getElementById("fileModal").style.display = "none";
+    const fileName = selectedFile.split('/').pop();
+    await call('/write', { firmware_path: selectedFile }, "write", fileName);
+    selectedFile = null;
+    document.getElementById("confirmWrite").classList.remove("active");
+  };
+  
+  document.getElementById("cancelWrite").onclick = () => {
+    document.getElementById("fileModal").style.display = "none";
+    selectedFile = null;
+    document.getElementById("selectedFileName").textContent = "";
+    document.getElementById("confirmWrite").classList.remove("active");
+  };
+  </script>
+</body>
+</html>

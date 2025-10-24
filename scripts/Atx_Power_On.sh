@@ -1,0 +1,9 @@
+#!/bin/bash
+
+# Configure pin direction
+i2cset -y 1 0x24 0x00 0x3f
+
+# Power button press (bit 7)
+i2cset -y 1 0x24 0x12 0x80
+sleep 1
+i2cset -y 1 0x24 0x12 0x00
