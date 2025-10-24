@@ -36,6 +36,12 @@ ALLOWED_SCRIPTS: Dict[str, str] = {
     "remove_os_flashing": "remove_os_flashing.sh",
     "remove_streaming_hid": "remove_streaming_hid.sh",
     "streaming_hid": "streaming_hid.sh",
+    "Atx_Power_Off": "Atx_Power_Off.sh",
+    "Atx_Power_On": "Atx_Power_On.sh",  
+    "Atx_Power_Reset": "Atx_Power_Reset.sh",
+    "Bios_serial_log": "Bios_serial_log.sh",
+    "System_State_Reading1": "System_State_Reading1.sh",
+    "Web_status_reader_fixed": "Web_status_reader_fixed.sh",
 }
 
 # ---- Models ----
@@ -317,6 +323,30 @@ def run_remove_streaming_hid():
 def run_streaming_hid():
     return run_named_script("streaming_hid")
 
+@app.post("/scripts/run/Atx_Power_Off")
+def run_streaming_hid():
+    return run_named_script("Atx_Power_Off")
+
+@app.post("/scripts/run/Atx_Power_On")
+def run_streaming_hid():
+    return run_named_script("Atx_Power_On")
+
+@app.post("/scripts/run/Atx_Power_Reset")
+def run_streaming_hid():
+    return run_named_script("Atx_Power_Reset")
+
+@app.post("/scripts/run/Bios_serial_log")
+def run_streaming_hid():
+    return run_named_script("Bios_serial_log")
+
+@app.post("/scripts/run/System_State_Reading1")
+def run_streaming_hid():
+    return run_named_script("System_State_Reading1")
+
+@app.post("/scripts/run/Web_status_reader_fixed")
+def run_streaming_hid():
+    return run_named_script("Web_status_reader_fixed")
+
 @app.get("/")
 def root():
     return {
@@ -333,6 +363,12 @@ def root():
                 "/scripts/run/remove_os_flashing",
                 "/scripts/run/remove_streaming_hid",
                 "/scripts/run/streaming_hid",
+                "/scripts/run/Atx_Power_Off",
+                "/scripts/run/Atx_Power_On",
+                "/scripts/run/Atx_Power_Reset",
+                "/scripts/run/Bios_serial_log",
+                "/scripts/run/System_State_Reading1",
+                "/scripts/run/Web_status_reader_fixed",
             ],
         },
     }
