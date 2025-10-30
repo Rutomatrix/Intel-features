@@ -256,3 +256,4 @@ The following items are planned for future development:
 1.  **Static IP Management:** Implement a global variable to store the **static IP address** and utilize it across all drivers where required.
 2.  **Static IP Driver:** Develop a dedicated driver to display and manage the configured static IP address.
 3.  **Automate the setup:** Need to automate the usb_file_sharing.py file setup in the destination device
+4.  **Automate the whole process:** Need to automate the whole process of the cloning the repo inside the RPI and start all the services
