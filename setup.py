@@ -32,6 +32,7 @@ SUDO_PREFIX = "sudo " if os.environ.get("SUDO", "0") in ("1", "true", "yes") els
 
 # Whitelist the scripts you want to expose (key -> filename)
 ALLOWED_SCRIPTS: Dict[str, str] = {
+    "set_global_ip": "set_global_ip.sh",
     "os_flashing": "os_flashing.sh",
     "remove_os_flashing": "remove_os_flashing.sh",
     "remove_streaming_hid": "remove_streaming_hid.sh",
@@ -307,6 +308,10 @@ async def run_named_script_stream(
     return StreamingResponse(gen(), media_type=media, headers=headers)
 
 # Convenience shortcuts (no args)
+@app.post("/scripts/run/set_global_ip")
+def run_os_flashing():
+    return run_named_script("set_global_ip")
+
 @app.post("/scripts/run/os_flashing")
 def run_os_flashing():
     return run_named_script("os_flashing")
@@ -359,6 +364,7 @@ def root():
             "POST /scripts/run/{key}": list(ALLOWED_SCRIPTS.keys()),
             "POST /scripts/run/{key}/stream": "stream live output (plain/jsonl/sse)",
             "shortcuts": [
+                "/scripts/run/set_global_ip",
                 "/scripts/run/os_flashing",
                 "/scripts/run/remove_os_flashing",
                 "/scripts/run/remove_streaming_hid",

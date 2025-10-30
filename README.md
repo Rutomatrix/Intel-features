@@ -280,3 +280,5 @@ The following items are planned for future development:
 
 1.  **Static IP Management:** Implement a global variable to store the **static IP address** and utilize it across all drivers where required.
 2.  **Static IP Driver:** Develop a dedicated driver to display and manage the configured static IP address.
+
+Note: Need to verify the method that we're using here.
