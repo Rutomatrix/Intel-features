@@ -21,9 +21,7 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function updateUI(isOn, fromUserAction = true) {
-    // Only update if state actually changed
-    if (currentState === isOn && fromUserAction) return;
-
+    // Update current state
     currentState = isOn;
 
     // Update the power switch checkbox
@@ -54,7 +52,7 @@ document.addEventListener("DOMContentLoaded", function () {
       isProcessing = true;
       const isOn = action === "on";
 
-      // Immediate UI feedback
+      // Immediate UI feedback - ALWAYS update UI when user clicks
       updateUI(isOn, true);
 
       // Button click animation
@@ -81,9 +79,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
       // Update UI with server response to ensure sync
       updateUI(data.relay_on, true);
+      
     } catch (e) {
       console.error("Error sending action:", e);
-      // Revert UI on error
+      // Revert UI on error by fetching current status
       await fetchStatus();
     } finally {
       // Always reset processing flag
@@ -97,20 +96,12 @@ document.addEventListener("DOMContentLoaded", function () {
     sendAction(action);
   });
 
-  // Single event listeners for buttons (remove the duplicates)
+  // Button event listeners - REMOVE the state checks that prevent clicking
   btnOn.addEventListener("click", function () {
-    if (currentState === true) {
-      console.log("Already ON, skipping...");
-      return; // Already in the requested state
-    }
     sendAction("on");
   });
 
   btnOff.addEventListener("click", function () {
-    if (currentState === false) {
-      console.log("Already OFF, skipping...");
-      return; // Already in the requested state
-    }
     sendAction("off");
   });
 
