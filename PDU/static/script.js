@@ -4,8 +4,6 @@ document.addEventListener("DOMContentLoaded", function () {
   const powerToggle = document.getElementById("power-toggle");
   const powerSwitch = document.querySelector(".power-switch");
 
-  // Track the current state to prevent unnecessary API calls
-  let currentState = false;
   let isProcessing = false; // Prevent multiple simultaneous requests
 
   async function fetchStatus() {
