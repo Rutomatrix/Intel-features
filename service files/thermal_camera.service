@@ -1,0 +1,14 @@
+[Unit]
+Description=Bios Serial Log Service
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/python3 /home/rpi/Thermal_camera/main.py
+WorkingDirectory=/home/rpi/Thermal_camera
+StandardOutput=append:/home/rpi/Thermal_camera/service.log
+StandardError=append:/home/rpi/Thermal_camera/error.log
+Restart=always
+User=rpi
+
+[Install]
+WantedBy=multi-user.target

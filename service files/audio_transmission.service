@@ -1,0 +1,14 @@
+[Unit]
+Description=Bios Serial Log Service
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/python3 /home/rpi/Audio_transmission/audio.py
+WorkingDirectory=/home/rpi/Audio_transmission
+StandardOutput=append:/home/rpi/Audio_transmission/service.log
+StandardError=append:/home/rpi/Audio_transmission/error.log
+Restart=always
+User=rpi
+
+[Install]
+WantedBy=multi-user.target
