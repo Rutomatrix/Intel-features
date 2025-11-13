@@ -44,15 +44,21 @@ for block in devices:
                 hub_port_mapping[usb_path] = sorted(video_lines, key=lambda x: int(x.replace("/dev/video","")))[0]
 
 # -----------------------------
-# Select the device for the first hub port or fallback
+# Select a valid USB hub device dynamically
 # -----------------------------
-usb_video = hub_port_mapping.get("usb-0000:01:00.0-1.1.1")  # first hub port
+usb_video = None
 
-# Fallback: if first hub port doesn't exist (single capture connected directly)
+# Prioritize known hub prefixes dynamically (1.1.x, 1.2.x, 1.3.x, etc.)
+for usb_path in sorted(hub_port_mapping.keys()):
+    if re.search(r"usb-0000:01:00\.0-1\.\d(\.\d+)?", usb_path):  # match any 1.X.X pattern
+        usb_video = hub_port_mapping[usb_path]
+        break
+
+# Fallback: use the first available device if none matched pattern
 if not usb_video and hub_port_mapping:
     usb_video = list(hub_port_mapping.values())[0]
 
-print(f"Virtual Desk video device: {usb_video}")
+print("Detected USB video device:", usb_video)
 
 
 USTREAMER_CMD = [
