@@ -5,7 +5,7 @@ import time
 
 # Configuration
 RELAY_GPIO = 21  # BCM numbering (GPIO21 -> physical pin 40)
-RELAY_ACTIVE_LOW = True  # You said: active LOW
+RELAY_ACTIVE_LOW = False  # You said: active LOW
 
 # Initialize GPIO
 GPIO.setmode(GPIO.BCM)
