@@ -107,57 +107,7 @@ Before running the application, ensure the following tools and libraries are ins
     ```
 ---
 
-## 2. System Drivers Installation (Excluding USB File Sharing)
-
-This section covers cloning a repository and installing service files for additional drivers/features.
-
-### Pre-requirements: Install Git
-
-First, ensure **Git** is installed on the Raspberry Pi:
-
-1.  Verify if Git is installed:
-    ```bash
-    git --version
-    ```
-2.  If Git is not installed, follow these steps:
-    * Update the package index:
-        ```bash
-        sudo apt update
-        ```
-    * Install Git:
-        ```bash
-        sudo apt install git -y
-        ```
-    * Verify installation again:
-        ```bash
-        git --version
-        ```
-
-### Clone and Install Drivers
-
-1.  **Navigate** to the home directory for the `rpi` user:
-    ```bash
-    cd /home/rpi
-    ```
-2.  **Clone** the feature repository. This will create a local folder (e.g., `Intel-features`):
-    ```bash
-    git clone https://github.com/Rutomatrix/Intel-features.git
-    ```
-3.  **Copy** the necessary service files to the system's `systemd` directory:
-    ```bash
-    sudo cp -r intel-features/service-files/* /etc/systemd/system/
-    ```
-
-4.  **Reboot** the Raspberry Pi to apply the service changes:
-    ```bash
-    sudo reboot
-    ```
-
-Once the RPI has rebooted, all the installed features and drivers should be accessible.
-
----
-
-## 3. Future Development (Yet to Do)
+## 2. Future Development (Yet to Do)
 
 The following items are planned for future development:
 
