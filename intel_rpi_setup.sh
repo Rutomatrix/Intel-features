@@ -33,11 +33,11 @@ echo "=========================================="
 echo "⚙️ Step 3: Moving service files..."
 echo "=========================================="
 cd "$INSTALL_DIR"
-if [ -d "service files" ]; then
+if [ -d "service-files" ]; then
     echo "📤 Copying service files to $SYSTEMD_DIR..."
-    sudo cp -v "service files"/* "$SYSTEMD_DIR"/
+    sudo cp -v "service-files"/* "$SYSTEMD_DIR"/
 else
-    echo "❌ 'service files' folder not found!"
+    echo "❌ 'service-files' folder not found!"
     exit 1
 fi
 
