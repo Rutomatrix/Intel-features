@@ -37,7 +37,7 @@ ALLOWED_SCRIPTS: Dict[str, str] = {
     "streaming_hid": "streaming_hid.sh",
     "remove_streaming_hid": "remove_streaming_hid.sh",
     "rpi_cfg": "rpi_cfg.sh",
-    "postcode": "postcode.sh",
+    "postcode": "install_postcode.sh",
     "remove_postcode": "remove_postcode.sh",
 }
 
@@ -397,9 +397,9 @@ def run_streaming_hid():
 def run_remove_streaming_hid():
     return run_named_script("remove_streaming_hid")
 
-@app.post("/scripts/run/postcode")
+@app.post("/scripts/run/install_postcode")
 def run_postcode():
-    return run_named_script("postcode")
+    return run_named_script("install_postcode")
 
 @app.post("/scripts/run/remove_postcode")
 def run_remove_postcode():
@@ -421,7 +421,7 @@ def root():
                 "/scripts/run/remove_os_flashing",
                 "/scripts/run/streaming_hid",
                 "/scripts/run/remove_streaming_hid",
-                "/scripts/run/postcode",             
+                "/scripts/run/install_postcode",             
                 "/scripts/run/remove_postcode",
             ],
         },
