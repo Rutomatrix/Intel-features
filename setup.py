@@ -37,6 +37,8 @@ ALLOWED_SCRIPTS: Dict[str, str] = {
     "streaming_hid": "streaming_hid.sh",
     "remove_streaming_hid": "remove_streaming_hid.sh",
     "rpi_cfg": "rpi_cfg.sh",
+    "postcode": "postcode.sh",
+    "remove_postcode": "remove_postcode.sh",
 }
 
 # ---- Models ----
@@ -224,11 +226,12 @@ async def _stream_proc_with_format(cmd: str, cwd: Optional[str], fmt: str):
         return
 
     async for s in _stream_proc_raw(cmd, cwd):
-        line = s.rstrip("\n")
+        clean = s.rstrip("\n")  # <-- compute outside the f-string
         if fmt == "jsonl":
-            yield json.dumps({"line": line}) + "\n"
+            yield json.dumps({"line": clean}) + "\n"
         else:  # sse
-            yield f"data: {json.dumps({'line': line})}\n\n"
+            yield "data: " + json.dumps({"line": clean}) + "\n\n"
+
 
 # ---- Routes ----
 @app.get("/scripts/list")
@@ -339,10 +342,11 @@ async def rpi_config_apply_stream(
         def _fmt(line: str) -> str:
             if format == "plain":
                 return line
+            clean = line.rstrip("\n")  # <-- precompute
             if format == "jsonl":
-                return json.dumps({"line": line.rstrip("\n")}) + "\n"
+                return json.dumps({"line": clean}) + "\n"
             # sse
-            return f"data: {json.dumps({'line': line.rstrip('\\n')})}\n\n"
+            return "data: " + json.dumps({"line": clean}) + "\n\n"
 
         # 1) stream the config script output first
         async for chunk in _stream_proc_with_format(cmd, cwd=None, fmt=format):
@@ -393,6 +397,14 @@ def run_streaming_hid():
 def run_remove_streaming_hid():
     return run_named_script("remove_streaming_hid")
 
+@app.post("/scripts/run/postcode")
+def run_postcode():
+    return run_named_script("postcode")
+
+@app.post("/scripts/run/remove_postcode")
+def run_remove_postcode():
+    return run_named_script("remove_postcode")
+
 @app.get("/")
 def root():
     return {
@@ -409,6 +421,8 @@ def root():
                 "/scripts/run/remove_os_flashing",
                 "/scripts/run/streaming_hid",
                 "/scripts/run/remove_streaming_hid",
+                "/scripts/run/postcode",             
+                "/scripts/run/remove_postcode",
             ],
         },
     }
