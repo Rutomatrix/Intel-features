@@ -335,13 +335,45 @@ async def rpi_config_apply_stream(
         media = "text/event-stream"
 
     async def gen():
+        # helper to format a single line according to the chosen format
+        def _fmt(line: str) -> str:
+            if format == "plain":
+                return line
+            if format == "jsonl":
+                return json.dumps({"line": line.rstrip("\n")}) + "\n"
+            # sse
+            return f"data: {json.dumps({'line': line.rstrip('\\n')})}\n\n"
+
+        # 1) stream the config script output first
         async for chunk in _stream_proc_with_format(cmd, cwd=None, fmt=format):
             yield chunk
+
+        # 2) after the script exits, run verification commands (if the Pi hasn't rebooted yet)
+        # NOTE: if the script reboots the Pi, the connection will drop before these run.
+        yield _fmt("\n# Verification: Check UART enabled in config\n")
+        uart_cmd = r"grep -E '^enable_uart=' /boot/firmware/config.txt || grep -E '^enable_uart=' /boot/config.txt"
+        cp1 = run_cmd(uart_cmd)
+        out1 = (cp1.stdout or "") + (cp1.stderr or "")
+        if out1.strip():
+            for line in out1.splitlines(True):
+                yield _fmt(line)
+        else:
+            yield _fmt("(no enable_uart line found)\n")
+
+        yield _fmt("\n# Verification: Check serial login shell (serial-getty) status\n")
+        getty_cmd = "systemctl status serial-getty@ttyAMA0.service || systemctl status serial-getty@ttyS0.service"
+        cp2 = run_cmd(getty_cmd)
+        out2 = (cp2.stdout or "") + (cp2.stderr or "")
+        for line in out2.splitlines(True):
+            yield _fmt(line)
+
         if format == "plain":
+            # final newline helps curl finish cleanly
             yield ""
 
     headers = {"Cache-Control": "no-cache", "X-Accel-Buffering": "no", "Connection": "close"}
     return StreamingResponse(gen(), media_type=media, headers=headers)
+
 
 
 # ---- Convenience shortcuts (only the four required) ----
