@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Postcode Reader</title>
+</head>
+<body>
+    <h1>Reading Postcodes...</h1>
+    <ul id="postcode-list"></ul>
+    <p id="status">Waiting...</p>
+
+    <script>
+        function startReading() {
+            fetch('/get_data')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('status').innerText = "Started reading...";
+                    pollForUpdates();
+                });
+        }
+
+        function pollForUpdates() {
+            fetch('/poll_data')
+                .then(response => response.json())
+                .then(data => {
+                    const list = document.getElementById('postcode-list');
+                    list.innerHTML = '';
+
+                    data.postcodes.forEach(code => {
+                        const li = document.createElement('li');
+                        li.innerText = code;
+                        list.appendChild(li);
+                    });
+
+                    if (data.status === "success") {
+                        document.getElementById('status').innerText = "? Done! Final postcode received.";
+                    } else {
+                        setTimeout(pollForUpdates, 1000); // poll again
+                    }
+                });
+        }
+
+        startReading();
+    </script>
+    </body>
+</html>

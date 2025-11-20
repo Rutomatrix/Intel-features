@@ -7,7 +7,7 @@ import shlex
 import subprocess
 import asyncio
 import json
-from typing import List, Optional, Dict, Any, AsyncGenerator
+from typing import List, Optional, Dict, Any
 
 app = FastAPI(title="Scripts Manager")
 
@@ -30,19 +30,13 @@ TARGET_DIR = f"{HOME}/{SCRIPTS_SUBDIR}"            # e.g., /home/rpi/scripts
 # If your API runs as non-root and you want to sudo the scripts, set SUDO=1 in the environment.
 SUDO_PREFIX = "sudo " if os.environ.get("SUDO", "0") in ("1", "true", "yes") else ""
 
-# Whitelist the scripts you want to expose (key -> filename)
+# Whitelist ONLY the required scripts
 ALLOWED_SCRIPTS: Dict[str, str] = {
-    "set_global_ip": "set_global_ip.sh",
     "os_flashing": "os_flashing.sh",
     "remove_os_flashing": "remove_os_flashing.sh",
-    "remove_streaming_hid": "remove_streaming_hid.sh",
     "streaming_hid": "streaming_hid.sh",
-    "Atx_Power_Off": "Atx_Power_Off.sh",
-    "Atx_Power_On": "Atx_Power_On.sh",  
-    "Atx_Power_Reset": "Atx_Power_Reset.sh",
-    "Bios_serial_log": "Bios_serial_log.sh",
-    "System_State_Reading1": "System_State_Reading1.sh",
-    "Web_status_reader_fixed": "Web_status_reader_fixed.sh",
+    "remove_streaming_hid": "remove_streaming_hid.sh",
+    "rpi_cfg": "rpi_cfg.sh",
 }
 
 # ---- Models ----
@@ -50,10 +44,6 @@ class CloneRequest(BaseModel):
     repo_url: Optional[str] = None
     branch: Optional[str] = None
     clean: bool = True  # remove existing /home/<user>/scripts before clone
-
-class RunRequest(BaseModel):
-    args: Optional[List[str]] = None
-    include_source: bool = False   # default False per your preference
 
 # ---- Utilities ----
 def run_cmd(cmd: str, cwd: Optional[str] = None) -> subprocess.CompletedProcess:
@@ -73,6 +63,42 @@ def ensure_executable(path: str) -> None:
         os.chmod(path, st.st_mode | 0o111)  # add +x
     except FileNotFoundError:
         pass
+
+def ensure_repo_file(repo_url: str, branch: str, relpath: str, dest_path: str):
+    """
+    Sparse-checkout a single file (relpath) from repo and copy to dest_path.
+    """
+    tmp = "/tmp/singlefile_sparse"
+    subprocess.run(f"rm -rf {shlex.quote(tmp)}", shell=True, check=False)
+    subprocess.run(f"mkdir -p {shlex.quote(tmp)}", shell=True, check=True)
+
+    steps = [
+        "git init",
+        f"git remote add origin {shlex.quote(repo_url)}",
+        f"git fetch --depth 1 origin {shlex.quote(branch)}",
+        "git sparse-checkout init --cone",
+        f"git sparse-checkout set {shlex.quote(relpath)}",
+        f"git checkout {shlex.quote(branch)}",
+    ]
+    for s in steps:
+        cp = run_cmd(s, cwd=tmp)
+        if cp.returncode != 0:
+            raise RuntimeError(f"[git singlefile] {s}\nstdout:\n{cp.stdout}\nstderr:\n{cp.stderr}")
+
+    src = os.path.join(tmp, relpath)
+    if not os.path.isfile(src):
+        raise RuntimeError(f"File '{relpath}' not found in repo.")
+    os.makedirs(os.path.dirname(dest_path), exist_ok=True)
+    subprocess.run(f"cp -f {shlex.quote(src)} {shlex.quote(dest_path)}", shell=True, check=True)
+
+    try:
+        user = SCRIPT_USER
+        subprocess.run(f"chown {shlex.quote(user)}:{shlex.quote(user)} {shlex.quote(dest_path)}",
+                       shell=True, check=False)
+        subprocess.run(f"chmod 0644 {shlex.quote(dest_path)}", shell=True, check=False)
+    except Exception:
+        pass
+
 
 def sparse_clone_scripts(repo_url: str, branch: str, dest_dir: str) -> None:
     """
@@ -140,7 +166,7 @@ def _read_script_source(path: str) -> str:
     except Exception as e:
         return f"<unable to read script: {e}>"
 
-# ---- Blocking run (returns full stdout/stderr; source optional) ----
+# ---- Blocking run (returns full stdout/stderr; no source by default) ----
 def run_script_by_key(key: str, args: Optional[List[str]] = None, include_source: bool = False) -> Dict[str, Any]:
     script_path = _script_path_for_key(key)
     ensure_executable(script_path)
@@ -182,36 +208,27 @@ async def _stream_proc_raw(cmd: str, cwd: Optional[str]):
         executable="/bin/bash",
     )
 
-    # Read as text line-by-line (decode manually for robustness)
-    # NOTE: asyncio doesn't support text=True, so decode bytes -> str here.
     assert proc.stdout is not None
     while True:
         chunk = await proc.stdout.readline()
         if not chunk:
             break
-        # decode bytes safely
         yield chunk.decode("utf-8", errors="replace")
 
-    # ensure the process has fully exited
     await proc.wait()
-
 
 async def _stream_proc_with_format(cmd: str, cwd: Optional[str], fmt: str):
     if fmt == "plain":
         async for s in _stream_proc_raw(cmd, cwd):
-            # s already ends with newline when produced by script
             yield s
         return
 
-    # jsonl or sse formats
     async for s in _stream_proc_raw(cmd, cwd):
         line = s.rstrip("\n")
         if fmt == "jsonl":
             yield json.dumps({"line": line}) + "\n"
         else:  # sse
             yield f"data: {json.dumps({'line': line})}\n\n"
-
-
 
 # ---- Routes ----
 @app.get("/scripts/list")
@@ -238,7 +255,6 @@ def clone_scripts(req: Optional[CloneRequest] = Body(None)):
     branch = (req.branch if req and req.branch else BRANCH_DEFAULT)
     clean = (req.clean if req is not None else True)
 
-    # optional clean
     if clean and os.path.isdir(TARGET_DIR):
         subprocess.run(f"rm -rf {shlex.quote(TARGET_DIR)}", shell=True, check=False)
 
@@ -261,12 +277,8 @@ def run_named_script(
     args: Optional[List[str]] = Query(default=None, description="Optional args, e.g. ?args=foo&args=bar"),
     include_source: bool = Query(default=False, description="Include script file contents in the response"),
 ):
-    """
-    Run a whitelisted script by key. Returns JSON with complete stdout/stderr (after completion).
-    """
     result = run_script_by_key(key, args=args, include_source=include_source)
     if result["returncode"] != 0:
-        # Still return everything, but as HTTP 500 for clients that rely on status code
         raise HTTPException(status_code=500, detail=result)
     return result
 
@@ -277,9 +289,6 @@ async def run_named_script_stream(
     format: str = Query(default="plain", pattern="^(plain|jsonl|sse)$",
                         description="Streaming format: plain (default), jsonl, or sse"),
 ):
-    """
-    Stream live output EXACTLY like terminal (default = plain).
-    """
     script_path = _script_path_for_key(key)
     ensure_executable(script_path)
     arg_str = " ".join(shlex.quote(a) for a in (args or []))
@@ -292,26 +301,50 @@ async def run_named_script_stream(
         media = "text/event-stream"
 
     async def gen():
-        # stream the command (no headers/timestamps)
         async for chunk in _stream_proc_with_format(cmd, cwd=None, fmt=format):
             yield chunk
-        # flush a final newline, helps curl not complain
         if format == "plain":
             yield ""
 
-    # add headers that help proxies/clients not buffer/guess sizes
     headers = {
         "Cache-Control": "no-cache",
-        "X-Accel-Buffering": "no",  # Nginx
+        "X-Accel-Buffering": "no",
         "Connection": "close",
     }
     return StreamingResponse(gen(), media_type=media, headers=headers)
 
-# Convenience shortcuts (no args)
-@app.post("/scripts/run/set_global_ip")
-def run_os_flashing():
-    return run_named_script("set_global_ip")
+@app.post("/rpi/config/apply/stream")
+async def rpi_config_apply_stream(
+    format: str = Query(default="plain", pattern="^(plain|jsonl|sse)$")
+):
+    dest_cfg = f"{HOME}/config.txt"
+    try:
+        ensure_repo_file(REPO_URL_DEFAULT, BRANCH_DEFAULT, "config.txt", dest_cfg)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Fetching config.txt failed: {e}")
 
+    script_path = _script_path_for_key("rpi_cfg")
+    ensure_executable(script_path)
+    # No args (script defaults): uses /home/<user>/config.txt, enables serial, reboots
+    cmd = f"{SUDO_PREFIX}/bin/bash {shlex.quote(script_path)}"
+
+    media = "text/plain"
+    if format == "jsonl":
+        media = "application/x-ndjson"
+    elif format == "sse":
+        media = "text/event-stream"
+
+    async def gen():
+        async for chunk in _stream_proc_with_format(cmd, cwd=None, fmt=format):
+            yield chunk
+        if format == "plain":
+            yield ""
+
+    headers = {"Cache-Control": "no-cache", "X-Accel-Buffering": "no", "Connection": "close"}
+    return StreamingResponse(gen(), media_type=media, headers=headers)
+
+
+# ---- Convenience shortcuts (only the four required) ----
 @app.post("/scripts/run/os_flashing")
 def run_os_flashing():
     return run_named_script("os_flashing")
@@ -320,37 +353,13 @@ def run_os_flashing():
 def run_remove_os_flashing():
     return run_named_script("remove_os_flashing")
 
-@app.post("/scripts/run/remove_streaming_hid")
-def run_remove_streaming_hid():
-    return run_named_script("remove_streaming_hid")
-
 @app.post("/scripts/run/streaming_hid")
 def run_streaming_hid():
     return run_named_script("streaming_hid")
 
-@app.post("/scripts/run/Atx_Power_Off")
-def run_streaming_hid():
-    return run_named_script("Atx_Power_Off")
-
-@app.post("/scripts/run/Atx_Power_On")
-def run_streaming_hid():
-    return run_named_script("Atx_Power_On")
-
-@app.post("/scripts/run/Atx_Power_Reset")
-def run_streaming_hid():
-    return run_named_script("Atx_Power_Reset")
-
-@app.post("/scripts/run/Bios_serial_log")
-def run_streaming_hid():
-    return run_named_script("Bios_serial_log")
-
-@app.post("/scripts/run/System_State_Reading1")
-def run_streaming_hid():
-    return run_named_script("System_State_Reading1")
-
-@app.post("/scripts/run/Web_status_reader_fixed")
-def run_streaming_hid():
-    return run_named_script("Web_status_reader_fixed")
+@app.post("/scripts/run/remove_streaming_hid")
+def run_remove_streaming_hid():
+    return run_named_script("remove_streaming_hid")
 
 @app.get("/")
 def root():
@@ -364,17 +373,10 @@ def root():
             "POST /scripts/run/{key}": list(ALLOWED_SCRIPTS.keys()),
             "POST /scripts/run/{key}/stream": "stream live output (plain/jsonl/sse)",
             "shortcuts": [
-                "/scripts/run/set_global_ip",
                 "/scripts/run/os_flashing",
                 "/scripts/run/remove_os_flashing",
-                "/scripts/run/remove_streaming_hid",
                 "/scripts/run/streaming_hid",
-                "/scripts/run/Atx_Power_Off",
-                "/scripts/run/Atx_Power_On",
-                "/scripts/run/Atx_Power_Reset",
-                "/scripts/run/Bios_serial_log",
-                "/scripts/run/System_State_Reading1",
-                "/scripts/run/Web_status_reader_fixed",
+                "/scripts/run/remove_streaming_hid",
             ],
         },
     }
