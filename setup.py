@@ -37,7 +37,7 @@ ALLOWED_SCRIPTS: Dict[str, str] = {
     "streaming_hid": "streaming_hid.sh",
     "remove_streaming_hid": "remove_streaming_hid.sh",
     "rpi_cfg": "rpi_cfg.sh",
-    "postcode": "install_postcode.sh",
+    "install_postcode": "install_postcode.sh",
     "remove_postcode": "remove_postcode.sh",
 }
 
