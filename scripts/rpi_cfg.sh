@@ -128,6 +128,9 @@ else
 fi
 
 echo "=== rpi_cfg: complete ==="
+echo "Verify UART enabled in config and serial login shell active with below commands"
+echo "grep -E '^enable_uart=' /boot/firmware/config.txt || grep -E '^enable_uart=' /boot/config.txt"
+echo "systemctl status serial-getty@ttyAMA0.service || systemctl status serial-getty@ttyS0.service"
 if [[ "${NO_REBOOT}" -eq 0 ]]; then
   echo "Rebooting now..."
   sync
