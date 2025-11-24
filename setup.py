@@ -39,6 +39,8 @@ ALLOWED_SCRIPTS: Dict[str, str] = {
     "rpi_cfg": "rpi_cfg.sh",
     "install_postcode": "install_postcode.sh",
     "remove_postcode": "remove_postcode.sh",
+    "install_pdu":"install_pdu.sh",
+    "remove_pdu": "remove_pdu.sh",
 }
 
 # ---- Models ----
@@ -397,13 +399,34 @@ def run_streaming_hid():
 def run_remove_streaming_hid():
     return run_named_script("remove_streaming_hid")
 
-@app.post("/scripts/run/install_postcode")
-def run_postcode():
-    return run_named_script("install_postcode")
+@app.post("/scripts/run/install_postcode/stream")
+async def stream_install_postcode(
+    args: Optional[List[str]] = Query(default=None),
+    format: str = Query(default="plain", pattern="^(plain|jsonl|sse)$")
+):
+    return await run_named_script_stream("install_postcode", args=args, format=format)
 
-@app.post("/scripts/run/remove_postcode")
-def run_remove_postcode():
-    return run_named_script("remove_postcode")
+@app.post("/scripts/run/remove_postcode/stream")
+async def stream_remove_postcode(
+    args: Optional[List[str]] = Query(default=None),
+    format: str = Query(default="plain", pattern="^(plain|jsonl|sse)$")
+):
+    return await run_named_script_stream("remove_postcode", args=args, format=format)
+
+@app.post("/scripts/run/install_pdu/stream")
+async def stream_install_pdu(
+    args: Optional[List[str]] = Query(default=None),
+    format: str = Query(default="plain", pattern="^(plain|jsonl|sse)$")
+):
+    return await run_named_script_stream("install_pdu", args=args, format=format)
+
+@app.post("/scripts/run/remove_pdu/stream")
+async def stream_remove_pdu(
+    args: Optional[List[str]] = Query(default=None),
+    format: str = Query(default="plain", pattern="^(plain|jsonl|sse)$")
+):
+    return await run_named_script_stream("remove_pdu", args=args, format=format)
+
 
 @app.get("/")
 def root():
@@ -421,8 +444,10 @@ def root():
                 "/scripts/run/remove_os_flashing",
                 "/scripts/run/streaming_hid",
                 "/scripts/run/remove_streaming_hid",
-                "/scripts/run/install_postcode",             
-                "/scripts/run/remove_postcode",
+                "/scripts/run/install_postcode/stream",
+                "/scripts/run/remove_postcode/stream",
+                "/scripts/run/install_pdu/stream",
+                "/scripts/run/remove_pdu/stream",
             ],
         },
     }
