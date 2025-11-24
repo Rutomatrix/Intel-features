@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PDU Controller</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <main class="main">
+      <section class="card">
+        <h1 class="card-title">Power Outlet Control</h1>
+        <p class="card-sub">GPIO 21 (Active Low Relay)</p>
+
+        <div class="card-body">
+          <!-- Power Switch Animation -->
+          <div class="power-switch">
+            <input type="checkbox" id="power-toggle" />
+            <div class="button">
+              <svg class="power-off">
+                <use xlink:href="#line" class="line" />
+                <use xlink:href="#circle" class="circle" />
+              </svg>
+              <svg class="power-on">
+                <use xlink:href="#line" class="line" />
+                <use xlink:href="#circle" class="circle" />
+              </svg>
+            </div>
+          </div>
+
+          <div class="controls">
+            <button id="btn-on" class="btn btn-primary">Turn ON</button>
+            <button id="btn-off" class="btn btn-ghost">Turn OFF</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- SVG Symbols -->
+    <svg xmlns="http://www.w3.org/2000/svg" style="display: none">
+      <symbol
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 150 150"
+        id="line"
+      >
+        <line x1="75" y1="34" x2="75" y2="58" />
+      </symbol>
+      <symbol
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 150 150"
+        id="circle"
+      >
+        <circle cx="75" cy="80" r="35" />
+      </symbol>
+    </svg>
+
+    <script src="/static/script.js"></script>
+  </body>
+</html>

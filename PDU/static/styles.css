@@ -1,0 +1,451 @@
+:root {
+  --primary: #ff6a00; /* Orange */
+  --primary-dark: #e55d00; /* Darker orange */
+  --secondary-dark: #0f70b8; /* Darker blue */
+  --muted: #6b7280;
+  --background: #1b1a23;
+  --card-bg: #25232e;
+  --text: #ffffff;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  color: var(--text);
+  font-family: "Poppins", sans-serif;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  overflow: hidden;
+}
+
+.main {
+  width: 100%;
+  max-width: 500px;
+}
+
+.card {
+  background: var(--card-bg);
+  border-radius: 20px;
+  padding: 2.5rem;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  border: 1px solid #2196f39c;
+  background: linear-gradient(145deg, #25232e, #2a2835);
+  position: relative;
+}
+
+.card-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  text-align: center;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: #ffffff;
+  background-clip: text;
+}
+
+.card-sub {
+  color: var(--muted);
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.card-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+}
+
+/* Power Switch Animation - Fixed positioning */
+.power-switch {
+  --color-invert: var(--primary);
+  --width: 150px;
+  --height: 150px;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: var(--width);
+  height: var(--height);
+  z-index: 10; /* Ensure proper stacking */
+  margin: 0 auto; /* Center the switch */
+}
+
+.power-switch .button {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  pointer-events: auto; /* Ensure button is clickable */
+}
+
+.power-switch .button:after {
+  content: "";
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  background: radial-gradient(
+    circle closest-side,
+    var(--color-invert),
+    transparent
+  );
+  filter: blur(20px);
+  opacity: 0;
+  transition: opacity 1s ease, transform 1s ease;
+  transform: perspective(1px) translateZ(0);
+  backface-visibility: hidden;
+}
+
+.power-switch .power-on,
+.power-switch .power-off {
+  height: 100%;
+  width: 100%;
+  position: absolute;
+  z-index: 1;
+  fill: none;
+  stroke: var(--color-invert);
+  stroke-width: 8px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: stroke 0.5s ease;
+  pointer-events: none; /* Prevent SVG from blocking clicks */
+}
+
+.power-switch .line {
+  opacity: 0.2;
+}
+
+.power-switch .circle {
+  opacity: 0.2;
+  transform: rotate(-58deg);
+  transform-origin: center 80px;
+  stroke-dasharray: 220;
+  stroke-dashoffset: 40;
+}
+
+.power-switch .power-on {
+  filter: drop-shadow(0px 0px 6px rgba(255, 106, 0, 0.8));
+}
+
+.power-switch .power-on .line {
+  opacity: 0;
+  transition: opacity 0.3s ease 1s;
+}
+
+.power-switch .power-on .circle {
+  opacity: 1;
+  stroke-dashoffset: 220;
+  transition: transform 0s ease, stroke-dashoffset 1s ease 0s;
+}
+
+.power-switch input {
+  position: absolute;
+  height: 100%;
+  width: 100%;
+  z-index: 2;
+  cursor: pointer;
+  opacity: 0;
+}
+
+.power-switch input:checked + .button:after {
+  opacity: 0.15;
+  transform: scale(2) perspective(1px) translateZ(0);
+  backface-visibility: hidden;
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+.power-switch input:checked + .button .power-on,
+.power-switch input:checked + .button .power-off {
+  animation: click-animation 0.3s ease forwards;
+  transform: scale(1);
+}
+
+.power-switch input:checked + .button .power-on .line,
+.power-switch input:checked + .button .power-off .line {
+  animation: line-animation 0.8s ease-in forwards;
+}
+
+.power-switch input:checked + .button .power-on .circle,
+.power-switch input:checked + .button .power-off .circle {
+  transform: rotate(302deg);
+}
+
+.power-switch input:checked + .button .power-on .line {
+  opacity: 1;
+  transition: opacity 0.05s ease-in 0.55s;
+}
+
+.power-switch input:checked + .button .power-on .circle {
+  transform: rotate(302deg);
+  stroke-dashoffset: 40;
+  transition: transform 0.4s ease 0.2s, stroke-dashoffset 0.4s ease 0.2s;
+}
+
+/* Color States */
+.power-switch:not(.power-on) .power-off {
+  stroke: var(--muted);
+}
+
+.power-switch.power-on .power-off,
+.power-switch.power-on .power-on {
+  stroke: var(--primary);
+}
+
+.power-switch.power-on .button:after {
+  background: radial-gradient(circle closest-side, var(--primary), transparent);
+}
+
+/* Gradient effect for ON state */
+.power-switch.power-on .power-on {
+  filter: drop-shadow(0px 0px 8px rgba(255, 106, 0, 0.6));
+}
+
+/* Power Button Hover Effects - Fixed to prevent overlap */
+.power-switch .button {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  /* Contain hover effects within the switch */
+  overflow: hidden;
+  border-radius: 50%;
+}
+
+/* Hover effect only when directly hovering the power switch */
+.power-switch:hover .button {
+  transform: scale(1.05);
+}
+
+/* Enhanced glow effect on hover - contained within switch */
+.power-switch:hover .power-off,
+.power-switch:hover .power-on {
+  filter: drop-shadow(0px 0px 10px rgba(255, 106, 0, 0.4));
+}
+
+/* Stronger glow when ON and hovering */
+.power-switch.power-on:hover .power-on {
+  filter: drop-shadow(0px 0px 15px rgba(255, 106, 0, 0.8));
+}
+
+/* Subtle pulse animation on hover */
+.power-switch:hover .button:after {
+  opacity: 0.1;
+  transform: scale(1.5) perspective(1px) translateZ(0);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+/* Enhanced hover effects for the OFF state */
+.power-switch:not(.power-on):hover .power-off {
+  stroke: #9ca3af; /* Lighter gray on hover */
+  filter: drop-shadow(0px 0px 8px rgba(156, 163, 175, 0.3));
+}
+
+/* Click feedback */
+.power-switch .button:active {
+  transform: scale(0.95);
+  transition: transform 0.1s ease;
+}
+
+/* Animations */
+@keyframes line-animation {
+  0% {
+    transform: translateY(0);
+  }
+  10% {
+    transform: translateY(10px);
+  }
+  40% {
+    transform: translateY(-25px);
+  }
+  60% {
+    transform: translateY(-25px);
+  }
+  85% {
+    transform: translateY(10px);
+  }
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+@keyframes click-animation {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(0.9);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Controls - Fixed positioning and z-index */
+.controls {
+  display: flex;
+  gap: 1rem;
+  width: 100%;
+  max-width: 300px;
+  position: relative;
+  z-index: 20; /* Higher than power switch */
+  margin-top: 1rem; /* Ensure proper spacing */
+}
+
+.btn {
+  padding: 0.75rem 1.5rem;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  flex: 1;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  position: relative;
+  z-index: 30; /* Highest z-index */
+  pointer-events: auto; /* Ensure buttons are always clickable */
+}
+
+/* Ensure buttons work even when overlapping */
+.btn:hover {
+  z-index: 40; /* Even higher on hover */
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: white;
+  border: none;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 106, 0, 0.4);
+}
+
+.btn-primary.active {
+  background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(255, 106, 0, 0.3);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--muted);
+  border-color: var(--muted);
+}
+
+.btn-ghost:hover {
+  color: var(--text);
+  border-color: var(--text);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 255, 255, 0.1);
+}
+
+.btn-ghost.active {
+  background: rgba(18, 129, 214, 0.1);
+  color: #1281d6;
+  border-color: #1281d6;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(18, 129, 214, 0.2);
+}
+
+.btn.clicking {
+  transform: scale(0.95);
+}
+
+/* Status Indicator */
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--muted);
+  transition: all 0.3s ease;
+}
+
+.status-dot.online {
+  background: var(--primary);
+  box-shadow: 0 0 8px var(--primary);
+}
+
+.status-dot.offline {
+  background: #ef4444;
+  box-shadow: 0 0 8px #ef4444;
+}
+
+/* Connection Status */
+.connection-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.05);
+  font-size: 0.9rem;
+}
+
+.connection-status.online {
+  color: var(--primary);
+  background: rgba(255, 106, 0, 0.1);
+}
+
+.connection-status.offline {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+}
+
+/* Additional decorative elements */
+.card::before {
+  content: "";
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  border-radius: 22px;
+  z-index: -1;
+  opacity: 0.3;
+  filter: blur(10px);
+}
+
+/* Responsive Design */
+@media (max-width: 480px) {
+  .card {
+    padding: 1.5rem;
+  }
+
+  .power-switch {
+    --width: 120px;
+    --height: 120px;
+  }
+
+  .controls {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .btn {
+    padding: 1rem 1.5rem; /* Larger touch targets on mobile */
+  }
+}
