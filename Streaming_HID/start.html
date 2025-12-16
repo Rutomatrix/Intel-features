@@ -32,7 +32,7 @@
     <div id="status"></div>
 
     <script>
-        const BASE_IP = "172.16.38.22";
+        const BASE_IP = "{{ stream_host }}";
         async function startStream() {
             try {
                 const res = await fetch(`http://${BASE_IP}:8000/start_stream`, {

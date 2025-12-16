@@ -5,6 +5,7 @@ import socket
 import os
 import signal
 import time
+import socket
 import re
 
 app = Flask(__name__)
@@ -225,9 +226,29 @@ def smooth_mouse_delta(x, y, threshold=1):
     y = y if abs(y) >= threshold else 0
     return x, y
 
+def get_local_ip():
+    """Dynamically finds the local IP address of the machine."""
+    s = None
+    try:
+        # Create a temporary socket to connect to an external address 
+        # (doesn't actually send data) to determine the network interface's IP.
+        # Using Google's public DNS address (8.8.8.8) is common practice.
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip_address = s.getsockname()[0]
+        return ip_address
+    except Exception as e:
+        print(f"Error getting local IP: {e}. Falling back to 127.0.0.1.")
+        return "127.0.0.1"
+    finally:
+        if s:
+            s.close()
+
 @app.route("/")
 def index():
-    return render_template("index.html", stream_host="172.16.38.22")
+    # Dynamically get the IP address of the RPi
+    rpi_ip = get_local_ip()
+    return render_template("index.html", stream_host=rpi_ip)
 
 
 @app.route("/shortcut/<name>", methods=["POST"])

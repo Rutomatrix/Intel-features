@@ -99,7 +99,7 @@
 
   <script>
     const video = document.getElementById("stream");
-    const BASE_IP = "172.16.38.22";
+    const BASE_IP = "{{ stream_host }}";
     function startStreaming() {
     fetch(`http://${BASE_IP}:5000/start_stream`)
       .then(response => {

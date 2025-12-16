@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, jsonify
+from flask_cors import CORS
 import RPi.GPIO as GPIO
 import atexit
 import time
@@ -6,6 +7,10 @@ import time
 # Configuration
 RELAY_GPIO = 23  # BCM numbering (GPIO23 -> physical pin 16)
 RELAY_ACTIVE_LOW = False  # You said: active LOW
+
+app = Flask(__name__)
+# THIS IS THE CRITICAL LINE: It tells the server to accept requests from any origin (*)
+CORS(app)
 
 # Initialize GPIO
 GPIO.setmode(GPIO.BCM)
