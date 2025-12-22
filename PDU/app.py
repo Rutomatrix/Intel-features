@@ -8,13 +8,18 @@ import time
 RELAY_GPIO = 23  # BCM numbering (GPIO23 -> physical pin 16)
 RELAY_ACTIVE_LOW = False  # You said: active LOW
 
-app = Flask(__name__)
-# THIS IS THE CRITICAL LINE: It tells the server to accept requests from any origin (*)
+app = Flask(__name__, static_folder="static", template_folder="templates")
 CORS(app)
 
-# Initialize GPIO
+# --- GPIO Initialization ---
+
+# 1. ADD THIS LINE TO PREVENT THE "GPIO not allocated" error
+# This line tells RPi.GPIO to ignore warnings/errors about channels already being in use.
+# Since your driver "runs on boot," another process likely holds the pin.
+GPIO.setwarnings(False) 
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(RELAY_GPIO, GPIO.OUT)
+
 
 # If active-low then keep relay off by setting HIGH, else set LOW
 def set_relay_off_initial():
@@ -36,7 +41,7 @@ def cleanup():
 
 atexit.register(cleanup)
 
-app = Flask(__name__, static_folder="static", template_folder="templates")
+
 
 @app.route("/")
 def index():

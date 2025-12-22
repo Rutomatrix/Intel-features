@@ -44,22 +44,30 @@ for block in devices:
                 # Pick the lowest numbered /dev/video device
                 hub_port_mapping[usb_path] = sorted(video_lines, key=lambda x: int(x.replace("/dev/video","")))[0]
 
+
 # -----------------------------
-# Select a valid USB hub device dynamically
+# Select the device specifically on Port 1 of any detected hub
 # -----------------------------
 usb_video = None
 
-# Prioritize known hub prefixes dynamically (1.1.x, 1.2.x, 1.3.x, etc.)
+# Pattern explanation:
+# 1\.\d+ -> Matches any hub index (1.1, 1.2, 1.3, etc.)
+# \.1$   -> Matches Port 1 specifically at the end of the path
+port_1_pattern = r"usb-0000:01:00\.0-1\.\d+\.1$"
+
+# Sort keys to prioritize the first hub found (e.g., 1.1.1 over 1.2.1)
 for usb_path in sorted(hub_port_mapping.keys()):
-    if re.search(r"usb-0000:01:00\.0-1\.\d(\.\d+)?", usb_path):  # match any 1.X.X pattern
+    if re.search(port_1_pattern, usb_path):
         usb_video = hub_port_mapping[usb_path]
+        print(f"Matched Port 1 on hub: {usb_path}")
         break
 
-# Fallback: use the first available device if none matched pattern
+# Fallback: if no device is found on Port 1, use the first available mapping
 if not usb_video and hub_port_mapping:
     usb_video = list(hub_port_mapping.values())[0]
+    print(f"Fallback: Port 1 not found. Using first available: {usb_video}")
 
-print("Detected USB video device:", usb_video)
+print("Final Detected USB video device:", usb_video)
 
 
 USTREAMER_CMD = [
