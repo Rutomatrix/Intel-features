@@ -1,2 +1,5 @@
 flask
 RPi.GPIO
+flask-cors
+gunicorn
+requests
