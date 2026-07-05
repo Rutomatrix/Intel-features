@@ -15,66 +15,9 @@ CORS(app)
 KEYBOARD_PATH = "/dev/hidg0"
 MOUSE_PATH = "/dev/hidg1"
 
-import subprocess
-import re
-
-# -----------------------------
-# Get USB capture devices and their paths
-# -----------------------------
-result = subprocess.run(["v4l2-ctl", "--list-devices"], capture_output=True, text=True)
-output = result.stdout
-
-devices = output.strip().split("\n\n")
-hub_port_mapping = {}  # map USB path to /dev/videoX
-
-for block in devices:
-    lines = block.splitlines()
-    if len(lines) < 2:
-        continue
-
-    device_name = lines[0]
-    if "usb" in device_name.lower():  # consider USB devices only
-        # USB path is inside parentheses
-        match = re.search(r"\((usb[^\)]+)\)", device_name)
-        if match:
-            usb_path = match.group(1)
-            # Collect all /dev/video* lines in this block
-            video_lines = [line.strip() for line in lines[1:] if line.strip().startswith("/dev/video")]
-            if video_lines:
-                # Pick the lowest numbered /dev/video device
-                hub_port_mapping[usb_path] = sorted(video_lines, key=lambda x: int(x.replace("/dev/video","")))[0]
-
-# -----------------------------
-# Select a valid USB hub device dynamically
-# -----------------------------
-usb_video = None
-
-# Prioritize known hub prefixes dynamically (1.1.x, 1.2.x, 1.3.x, etc.)
-for usb_path in sorted(hub_port_mapping.keys()):
-    if re.search(r"usb-0000:01:00\.0-1\.\d(\.\d+)?", usb_path):  # match any 1.X.X pattern
-        usb_video = hub_port_mapping[usb_path]
-        break
-
-# Fallback: use the first available device if none matched pattern
-if not usb_video and hub_port_mapping:
-    usb_video = list(hub_port_mapping.values())[0]
-
-print("Detected USB video device:", usb_video)
-
-
-USTREAMER_CMD = [
-    "./ustreamer/ustreamer",
-    f"--device={usb_video}",
-    "--format=uyvy",
-    "--resolution=1920x1080",
-    "--encoder=m2m-image",
-    "--drop-same-frames=45",
-    "--host=0.0.0.0",
-    "--port=9000"
-]
-
-
 ustream_proc = None
+
+
 
 KEY_LEFT_CTRL = 0xE0
 KEY_LEFT_SHIFT = 0xE1
@@ -187,6 +130,98 @@ SHIFTED_KEYS = {
     95, 43, 123, 125, 124, 58, 34, 60, 62, 63
 }
 
+
+def get_capture_card_device():
+    """
+    Dynamically scans system video devices at runtime.
+    Returns the lowest-numbered /dev/videoX path for a USB capture card, or None.
+    """
+    try:
+        result = subprocess.run(["v4l2-ctl", "--list-devices"], capture_output=True, text=True, timeout=5)
+        output = result.stdout
+    except Exception as e:
+        print(f"[!] Failed to run v4l2-ctl: {e}")
+        return None
+
+    devices = output.strip().split("\n\n")
+    hub_port_mapping = {}
+
+    for block in devices:
+        lines = block.splitlines()
+        if len(lines) < 2:
+            continue
+
+        device_name = lines[0]
+        # Filter for USB capture devices
+        if "usb" in device_name.lower():
+            match = re.search(r"\((usb[^\)]+)\)", device_name)
+            if match:
+                usb_path = match.group(1)
+                video_lines = [line.strip() for line in lines[1:] if line.strip().startswith("/dev/video")]
+                if video_lines:
+                    # Extract the lowest numbered node index
+                    hub_port_mapping[usb_path] = sorted(video_lines, key=lambda x: int(x.replace("/dev/video", "")))[0]
+
+    if not hub_port_mapping:
+        print("[!] No USB video capture devices detected on the V4L2 bus.")
+        return None
+
+    # Priority 1: Match standard internal Pi hub configurations (1.1.x, 1.2.x, etc.)
+    for usb_path in sorted(hub_port_mapping.keys()):
+        if re.search(r"usb-0000:01:00\.0-1\.\d(\.\d+)?", usb_path):
+            detected_dev = hub_port_mapping[usb_path]
+            print(f"[*] Found preferred hub capture device: {detected_dev} via {usb_path}")
+            return detected_dev
+
+    # Priority 2: Fallback to the first available USB video device found
+    fallback_dev = list(hub_port_mapping.values())[0]
+    print(f"[*] Fallback: Selecting first available USB capture device: {fallback_dev}")
+    return fallback_dev
+
+
+def stop_existing_stream():
+    """Safely terminates any running ustreamer process."""
+    global ustream_proc
+    if ustream_proc is not None:
+        print("[*] Terminating active uStreamer instance...")
+        try:
+            # Check if process is actually running
+            if ustream_proc.poll() is None:
+                ustream_proc.send_signal(signal.SIGINT)
+                # Wait up to 3 seconds for graceful exit
+                for _ in range(30):
+                    if ustream_proc.poll() is not None:
+                        break
+                    time.sleep(0.1)
+                # Force kill if still hanging
+                if ustream_proc.poll() is None:
+                    print("[!] uStreamer didn't exit gracefully. Force killing...")
+                    ustream_proc.kill()
+                    ustream_proc.wait()
+        except Exception as e:
+            print(f"[!] Error stopping ustreamer process: {e}")
+        finally:
+            ustream_proc = None
+
+
+def start_ustreamer_process(video_device):
+    """Assembles command structure and spawns uStreamer."""
+    global ustream_proc
+    cmd = [
+        "./ustreamer/ustreamer",
+        f"--device={video_device}",
+        "--format=uyvy",
+        "--resolution=1920x1080",
+        "--encoder=m2m-image",
+        "--drop-same-frames=45",
+        "--host=0.0.0.0",
+        "--port=9000"
+    ]
+    print(f"[*] Launching uStreamer: {' '.join(cmd)}")
+    ustream_proc = subprocess.Popen(cmd)
+
+
+
 def send_keycode(keycode, modifier):
     report = bytes([modifier, 0x00, keycode, 0, 0, 0, 0, 0])
     with open(KEYBOARD_PATH, "rb+") as fd:
@@ -230,7 +265,7 @@ def get_local_ip():
     """Dynamically finds the local IP address of the machine."""
     s = None
     try:
-        # Create a temporary socket to connect to an external address 
+        # Create a temporary socket to connect to an external address
         # (doesn't actually send data) to determine the network interface's IP.
         # Using Google's public DNS address (8.8.8.8) is common practice.
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -248,7 +283,7 @@ def get_local_ip():
 def index():
     # Dynamically get the IP address of the RPi
     rpi_ip = get_local_ip()
-    return render_template("index.html", stream_host=rpi_ip)
+    return render_template("index.html", stream_host="100.109.50.57")
 
 
 @app.route("/shortcut/<name>", methods=["POST"])
@@ -306,24 +341,48 @@ def mouse():
 def start_stream():
     global ustream_proc
 
+    # Check if a healthy instance is already alive
     if ustream_proc is not None and ustream_proc.poll() is None:
         return {"status": "already running"}
 
+    # Dynamic Scan: Find where the capture card lives RIGHT NOW
+    usb_video = get_capture_card_device()
+    if not usb_video:
+        return {"status": "error", "detail": "No capture card detected on system ports. Try cycling power or remounting."}
+
     try:
-        print("[*] Starting uStreamer...")
-        ustream_proc = subprocess.Popen(USTREAMER_CMD)
-        return {"status": "started"}
+        start_ustreamer_process(usb_video)
+        return {"status": "started", "device": usb_video}
     except Exception as e:
         return {"status": "error", "detail": str(e)}
 
-if __name__ == "__main__":
-    ustream_proc = None
 
+@app.route("/restart_stream", methods=["POST"])
+def restart_stream():
+    """
+    UI triggered endpoint to force kill, re-probe, and rebuild the stream
+    pipeline when hardware hiccups occur.
+    """
+    print("[*] UI requested stream pipeline reset...")
+    # 1. Clear out the old process
+    stop_existing_stream()
+    # Give the OS subsystem a brief window to settle resource handles
+    time.sleep(0.5)
+    # 2. Rescan hardware dynamically
+    usb_video = get_capture_card_device()
+    if not usb_video:
+        return {"status": "error", "detail": "Reset failed: Capture card not found on the USB subsystem."}, 404
+
+    # 3. Spin up again
+    try:
+        start_ustreamer_process(usb_video)
+        return {"status": "restarted", "device": usb_video}, 200
+    except Exception as e:
+        return {"status": "error", "detail": str(e)}, 500
+    
+if __name__ == "__main__":
     try:
         print("[*] Starting Flask app on port 5000...")
-        app.run(host="0.0.0.0", port=5000)
+        app.run(host="0.0.0.0", port=5000, threaded=True)
     finally:
-        print("[*] Shutting down uStreamer...")
-        if ustream_proc is not None and ustream_proc.poll() is None:
-            ustream_proc.send_signal(signal.SIGINT)
-            ustream_proc.wait()
+        stop_existing_stream()
